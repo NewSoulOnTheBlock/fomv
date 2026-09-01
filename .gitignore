@@ -1,0 +1,8 @@
+node_modules/
+dist/
+state/
+*.db
+*.db-journal
+.env
+.env.local
+.env.production

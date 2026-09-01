@@ -6,3 +6,5 @@ state/
 .env
 .env.local
 .env.production
+
+.vercel

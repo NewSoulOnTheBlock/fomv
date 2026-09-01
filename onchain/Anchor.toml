@@ -1,0 +1,19 @@
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+fomo_vault = "CQL7yivcTc7sgTU4JKSYn6NRVbzmNFqChC8wH37sVq34"
+
+[programs.devnet]
+fomo_vault = "CQL7yivcTc7sgTU4JKSYn6NRVbzmNFqChC8wH37sVq34"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "echo 'see programs/fomo-vault/src for unit tests: cargo test'"

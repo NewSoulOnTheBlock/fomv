@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "watch": "bun run src/cli.ts watch",
     "nav": "bun run src/cli.ts nav",
-    "simulate": "bun run src/cli.ts simulate"
+    "simulate": "bun run src/cli.ts simulate",
+    "build:web": "bun run scripts/build-web.ts"
   },
   "dependencies": {
     "@solana/web3.js": "^1.98.0"

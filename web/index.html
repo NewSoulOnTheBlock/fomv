@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Pooled copy-trading vaults over fomo accounts: weight-based sizing, the guardrail set, and the share ledger.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#EDEFF3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1320" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Mirror Vault Mandate">
+<meta property="og:description" content="Pooled copy-trading vaults over fomo accounts: weight-based sizing, the guardrail set, and the share ledger.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mirror Vault Mandate">
+<meta name="twitter:description" content="Pooled copy-trading vaults over fomo accounts: weight-based sizing, the guardrail set, and the share ledger.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%220.9em%22%20font-size%3D%2290%22%3E%E2%9A%96%EF%B8%8F%3C%2Ftext%3E%3C%2Fsvg%3E">
+<title>Mirror Vault Mandate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<style>
+  /* Light palette is the base. Cool blue-biased neutrals so the amber signal
+     colour reads as a deliberate accent rather than a warm page tint. */
+  :root {
+    --ground:      #EDEFF3;
+    --surface:     #FFFFFF;
+    --surface-alt: #F5F6F9;
+    --line:        #D3D8E2;
+    --line-soft:   #E4E8EF;
+    --ink:         #12161F;
+    --ink-mid:     #414B5F;
+    --ink-soft:    #6B7688;
+    --accent:      #A65600;
+    --accent-soft: #F5E6D2;
+    --allow:       #1B6E52;
+    --allow-soft:  #DDEEE6;
+    --block:       #A8302A;
+    --block-soft:  #F6E0DE;
+
+    --measure: 68ch;
+    --step--1: 0.812rem;
+    --step-0:  1.0rem;
+    --step-1:  1.25rem;
+    --step-2:  1.62rem;
+    --step-3:  2.15rem;
+    --step-4:  3.1rem;
+  }
+
+  /* System-default viewers get no data-theme stamp, so this query is the only
+     thing separating them from light. Guarded so an explicit light choice wins. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0E1320;
+      --surface:     #161C2A;
+      --surface-alt: #1C2333;
+      --line:        #2C3546;
+      --line-soft:   #222A3A;
+      --ink:         #E7EAF2;
+      --ink-mid:     #A9B3C6;
+      --ink-soft:    #7A8598;
+      --accent:      #F0A742;
+      --accent-soft: #33270F;
+      --allow:       #5BC79B;
+      --allow-soft:  #16302A;
+      --block:       #F0827A;
+      --block-soft:  #33191A;
+    }
+  }
+
+  /* Explicit dark choice wins over a light OS. */
+  :root[data-theme="dark"] {
+    --ground:      #0E1320;
+    --surface:     #161C2A;
+    --surface-alt: #1C2333;
+    --line:        #2C3546;
+    --line-soft:   #222A3A;
+    --ink:         #E7EAF2;
+    --ink-mid:     #A9B3C6;
+    --ink-soft:    #7A8598;
+    --accent:      #F0A742;
+    --accent-soft: #33270F;
+    --allow:       #5BC79B;
+    --allow-soft:  #16302A;
+    --block:       #F0827A;
+    --block-soft:  #33191A;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: var(--step-0);
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 6rem;
+  }
+
+  /* ---- masthead ---------------------------------------------------------- */
+  header.masthead {
+    padding: 4.5rem 0 2.5rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .eyebrow {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--step--1);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1.25rem;
+  }
+
+  h1 {
+    font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 700;
+    font-size: var(--step-4);
+    line-height: 1.02;
+    letter-spacing: -0.028em;
+    text-wrap: balance;
+    margin: 0 0 1rem;
+  }
+
+  .thesis {
+    font-size: var(--step-1);
+    color: var(--ink-mid);
+    max-width: 46ch;
+    margin: 0;
+  }
+
+  /* Facts strip: the mandate's fixed parameters, tabular so they align. */
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    margin-top: 2.5rem;
+  }
+  .fact { background: var(--surface); padding: 0.9rem 1rem; }
+  .fact dt {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 0.35rem;
+  }
+  .fact dd {
+    margin: 0;
+    font-family: Archivo, sans-serif;
+    font-weight: 600;
+    font-size: var(--step-0);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- sections ---------------------------------------------------------- */
+  section { padding-top: 3.75rem; }
+
+  h2 {
+    font-family: Archivo, sans-serif;
+    font-weight: 700;
+    font-size: var(--step-2);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0 0 0.4rem;
+  }
+
+  h3 {
+    font-family: Archivo, sans-serif;
+    font-weight: 600;
+    font-size: var(--step-0);
+    letter-spacing: 0.01em;
+    margin: 2rem 0 0.5rem;
+  }
+
+  .kicker {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 0.9rem;
+  }
+
+  p { max-width: var(--measure); margin: 0 0 1rem; }
+  p.lede { font-size: var(--step-1); color: var(--ink-mid); }
+
+  strong { font-weight: 600; }
+  em { font-style: italic; }
+
+  code, .mono {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em;
+  }
+  p code, li code, td code {
+    background: var(--surface-alt);
+    border: 1px solid var(--line-soft);
+    border-radius: 3px;
+    padding: 0.06em 0.32em;
+  }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  /* ---- the equation ------------------------------------------------------ */
+  .equation {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    padding: 1.5rem 1.6rem;
+    margin: 1.75rem 0;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: var(--step-0);
+    line-height: 1.9;
+    overflow-x: auto;
+  }
+  .equation .arrow { color: var(--accent); padding: 0 0.6rem; }
+  .equation .dim { color: var(--ink-soft); }
+
+  /* ---- clamp ladder ------------------------------------------------------
+     Each rung is one constraint from the sizing code, with the bar width
+     showing what survived it. The shape of the ladder *is* the argument. */
+  .ladder {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    margin: 1.75rem 0;
+    overflow-x: auto;
+  }
+  .rung {
+    display: grid;
+    grid-template-columns: 13rem 1fr 7rem;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.7rem 1.1rem;
+    border-bottom: 1px solid var(--line-soft);
+    min-width: 34rem;
+  }
+  .rung:last-child { border-bottom: 0; }
+  .rung--final { background: var(--surface-alt); }
+  .rung-name {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.76rem;
+    color: var(--ink-mid);
+  }
+  .rung--final .rung-name { color: var(--ink); font-weight: 600; }
+  .rung-track {
+    height: 0.55rem;
+    background: var(--line-soft);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .rung-fill { height: 100%; background: var(--ink-soft); border-radius: 1px; }
+  .rung--binding .rung-fill { background: var(--accent); }
+  .rung--final .rung-fill { background: var(--allow); }
+  .rung-val {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--ink);
+  }
+
+  /* ---- tables ------------------------------------------------------------ */
+  .table-scroll { overflow-x: auto; margin: 1.5rem 0; border: 1px solid var(--line); }
+  table {
+    width: 100%;
+    min-width: 36rem;
+    border-collapse: collapse;
+    background: var(--surface);
+    font-size: 0.92rem;
+  }
+  caption {
+    caption-side: top;
+    text-align: left;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding: 0.85rem 1.1rem;
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--line);
+  }
+  th, td { text-align: left; padding: 0.62rem 1.1rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  th {
+    font-family: Archivo, sans-serif;
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  td.param { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.8rem; white-space: nowrap; }
+  td.val {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--accent);
+  }
+
+  /* Direction chips encode the asymmetry: buys are gated, sells are not. */
+  .chip {
+    display: inline-block;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    padding: 0.12rem 0.45rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .chip--block { background: var(--block-soft); color: var(--block); }
+  .chip--allow { background: var(--allow-soft); color: var(--allow); }
+
+  /* ---- callout ----------------------------------------------------------- */
+  .callout {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    padding: 1.4rem 1.6rem;
+    margin: 1.75rem 0;
+  }
+  .callout p { margin: 0; max-width: 60ch; }
+  .callout p + p { margin-top: 0.7rem; }
+  .callout .kicker { color: var(--accent); }
+
+  ul.plain { max-width: var(--measure); padding-left: 1.1rem; margin: 0 0 1rem; }
+  ul.plain li { margin-bottom: 0.45rem; }
+
+  /* ---- open questions ---------------------------------------------------- */
+  .open {
+    border-top: 1px solid var(--line);
+    padding: 1.1rem 0;
+    display: grid;
+    grid-template-columns: 1.5rem 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+  .open:last-of-type { border-bottom: 1px solid var(--line); }
+  .open-mark {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    padding-top: 0.28rem;
+  }
+  .open h3 { margin: 0 0 0.2rem; }
+  .open p { margin: 0; color: var(--ink-mid); }
+
+  footer {
+    margin-top: 4.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid var(--ink);
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+  footer p { max-width: var(--measure); }
+
+  @media (max-width: 640px) {
+    :root { --step-4: 2.3rem; --step-3: 1.75rem; --step-2: 1.4rem; }
+    header.masthead { padding-top: 3rem; }
+    .rung { grid-template-columns: 10rem 1fr 6rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Mirror vault · design mandate</p>
+    <h1>Pooled copy&#8209;trading over fomo accounts</h1>
+    <p class="thesis">
+      Deposit into a trader's vault. The vault mirrors that trader's on-chain
+      swaps, bounded by limits published before anyone deposits.
+    </p>
+
+    <dl class="facts">
+      <div class="fact"><dt>Leader</dt><dd>Any fomo wallet</dd></div>
+      <div class="fact"><dt>Chain</dt><dd>Solana</dd></div>
+      <div class="fact"><dt>Routing</dt><dd>Jupiter</dd></div>
+      <div class="fact"><dt>Detection</dt><dd>Balance deltas</dd></div>
+      <div class="fact"><dt>Status</dt><dd>Mainnet dry-run</dd></div>
+      <div class="fact"><dt>Tests</dt><dd>57 passing</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <p class="kicker">01 · The gap</p>
+    <h2>fomo already copies trades. It does not pool them.</h2>
+    <p class="lede">
+      fomo's copy trading is per-account: your wallet, your balance, your
+      strategy slot. There are no shares, no NAV, no fee split, and no way for a
+      trader to run size on behalf of people who believe in them.
+    </p>
+    <p>
+      Everything that makes pooling hard follows from one fact: <strong>a vault's
+      equity moves independently of the leader's.</strong> Deposits arrive,
+      withdrawals leave, and the two books diverge from the first trade onward.
+      Every design decision below is downstream of that.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker">02 · Sizing</p>
+    <h2>Mirror the weight, not the notional</h2>
+    <p>
+      A copy bot mirrors dollars: the leader spent $4,000, so you spend $4,000
+      times some multiplier. That number is meaningless to a pool whose equity
+      changed twice this morning. A vault mirrors the fraction of the book the
+      leader actually committed.
+    </p>
+
+    <div class="equation">
+      <span class="dim">leader committed</span> 4% <span class="dim">of their book</span>
+      <span class="arrow">→</span>
+      <span class="dim">vault commits</span> 4% <span class="dim">of vault equity</span>
+    </div>
+
+    <p>
+      This is scale-invariant. It survives deposits landing mid-position, it
+      survives the leader adding or withdrawing capital, and it means a $2k
+      depositor and a $2m depositor get the same <em>strategy</em> rather than
+      the same dollar amounts.
+    </p>
+
+    <h3>Entries and exits need opposite rules</h3>
+    <p>
+      This asymmetry is load-bearing, and collapsing it into one rule is the
+      classic copy-bot bug. If a position has 10&times;'d since entry,
+      portfolio-weight logic computes an exit size unrelated to what the vault
+      actually holds.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <caption>Sizing basis by direction</caption>
+        <thead>
+          <tr><th>Action</th><th>Sized from</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Entry</strong></td>
+            <td>Leader's portfolio <em>weight</em></td>
+            <td>Conviction is a fraction of their book, never a dollar amount</td>
+          </tr>
+          <tr>
+            <td><strong>Exit</strong></td>
+            <td>Leader's position <em>fraction</em></td>
+            <td>“Sold 60% of their position” maps onto our holding at any value</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker">03 · The clamp stack</p>
+    <h2>Every mirror is sized, then survived</h2>
+    <p>
+      A raw mirror size passes through each constraint in order, and the engine
+      records which one actually bound. Below is a real ladder from a mainnet
+      dry-run: a $20m vault following a leader with a $54m book who put 0.03% of
+      it into one token.
+    </p>
+
+    <div class="ladder">
+      <div class="rung">
+        <span class="rung-name">raw weight mirror</span>
+        <span class="rung-track"><span class="rung-fill" style="width:100%"></span></span>
+        <span class="rung-val">$6,498</span>
+      </div>
+      <div class="rung">
+        <span class="rung-name">maxPositionPct · 15%</span>
+        <span class="rung-track"><span class="rung-fill" style="width:100%"></span></span>
+        <span class="rung-val">$3,000,000</span>
+      </div>
+      <div class="rung rung--binding">
+        <span class="rung-name">maxPctOfLiquidity · 1%</span>
+        <span class="rung-track"><span class="rung-fill" style="width:74%"></span></span>
+        <span class="rung-val">binding</span>
+      </div>
+      <div class="rung">
+        <span class="rung-name">quoteReserve · 5%</span>
+        <span class="rung-track"><span class="rung-fill" style="width:100%"></span></span>
+        <span class="rung-val">$19,000,000</span>
+      </div>
+      <div class="rung">
+        <span class="rung-name">dailyDeployPct · 100%</span>
+        <span class="rung-track"><span class="rung-fill" style="width:100%"></span></span>
+        <span class="rung-val">$20,000,000</span>
+      </div>
+      <div class="rung rung--final">
+        <span class="rung-name">executed</span>
+        <span class="rung-track"><span class="rung-fill" style="width:100%"></span></span>
+        <span class="rung-val">$6,498.48</span>
+      </div>
+    </div>
+
+    <p>
+      Recording the binding constraint matters more than it looks. It is what
+      lets a depositor read <em>why</em> the vault took a smaller position than
+      the leader did, rather than inferring that the system is broken.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker">04 · Guardrails</p>
+    <h2>Bounds on risk-taking only</h2>
+    <p>
+      One rule governs the whole set: <strong>guardrails restrict risk-taking,
+      never risk-reduction.</strong> Nothing that blocks a buy blocks a sell —
+      including the deny list, because deny-listing an asset must not trap
+      depositors inside it.
+    </p>
+
+    <div class="table-scroll">
+      <table>
+        <caption>Token safety — evaluated before every entry</caption>
+        <thead>
+          <tr><th>Guardrail</th><th>Default</th><th>What it catches</th><th>On exit</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="param">requireSellSimulation</td><td class="val">on</td><td>Honeypots. Probed at <em>worst-case position size</em>, not a nominal unit — a trapped token routes fine for dust and not at all for a real position</td><td><span class="chip chip--allow">ignored</span></td></tr>
+          <tr><td class="param">requireFreezeAuthorityRenounced</td><td class="val">on</td><td>A live freeze authority strands every depositor at once</td><td><span class="chip chip--allow">ignored</span></td></tr>
+          <tr><td class="param">requireMintAuthorityRenounced</td><td class="val">on</td><td>Supply inflation under the position</td><td><span class="chip chip--allow">ignored</span></td></tr>
+          <tr><td class="param">maxPctOfLiquidity</td><td class="val">1%</td><td>The vault becoming its own adverse price move</td><td><span class="chip chip--allow">ignored</span></td></tr>
+          <tr><td class="param">minLiquidityUsd</td><td class="val">$25,000</td><td>Pools too thin to exit</td><td><span class="chip chip--allow">ignored</span></td></tr>
+          <tr><td class="param">minTokenAgeSec</td><td class="val">300</td><td>Freshly-deployed rugs. Set to 0 for an explicit sniper vault</td><td><span class="chip chip--allow">ignored</span></td></tr>
+          <tr><td class="param">maxTopHolderConcentration</td><td class="val">50%</td><td>Rug setup, measured excluding AMM pool vaults</td><td><span class="chip chip--allow">ignored</span></td></tr>
+          <tr><td class="param">requireHolderData</td><td class="val">on</td><td>Trading blind. Unmeasurable is its own state, distinct from safe or unsafe</td><td><span class="chip chip--allow">ignored</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <caption>Circuit breakers — evaluated once per cycle</caption>
+        <thead>
+          <tr><th>Breaker</th><th>Default</th><th>Effect</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="param">maxDrawdownPct</td><td class="val">35%</td><td><strong>Flattens</strong> the book rather than merely freezing it</td></tr>
+          <tr><td class="param">dailyLossLimitPct</td><td class="val">15%</td><td>Blocks new risk for the UTC day; exits stay open</td></tr>
+          <tr><td class="param">leaderCollapsePct</td><td class="val">50%</td><td>Stops following a leader being liquidated, tilting, or compromised</td></tr>
+          <tr><td class="param">maxPriceStalenessMs</td><td class="val">30,000</td><td>Never sizes against stale marks</td></tr>
+          <tr><td class="param">paused</td><td class="val">off</td><td>Operator kill switch — the one breaker that also stops exits</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker">05 · Execution</p>
+    <h2>The speed problem, answered honestly</h2>
+
+    <div class="callout">
+      <p class="kicker">The core execution guardrail</p>
+      <p>
+        You cannot promise a vault will beat the leader's fill. Depositors are
+        seconds behind by construction. What you <em>can</em> promise is a bound
+        on the cost of being slow.
+      </p>
+      <p>
+        <strong>If the price has already run past the leader's fill by more than
+        <code>maxLeaderPriceDriftBps</code> — 3% by default — the vault skips the
+        trade entirely.</strong> No position beats buying their exit liquidity.
+      </p>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <caption>Execution limits</caption>
+        <thead>
+          <tr><th>Limit</th><th>Default</th><th>Bounds</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="param">maxLeaderPriceDriftBps</td><td class="val">300</td><td>How far past the leader's fill we will still enter</td></tr>
+          <tr><td class="param">maxTradeAgeMs</td><td class="val">20,000</td><td>Chasing a signal that has gone cold</td></tr>
+          <tr><td class="param">maxSlippageBps</td><td class="val">150</td><td>Applied to price <em>impact</em> as well as quote deviation</td></tr>
+          <tr><td class="param">reentryCooldownSec</td><td class="val">60</td><td>Fee churn from a leader flip-flopping</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Detection reads balance deltas, not DEX logs</h3>
+    <p>
+      fomo routes through aggregators, so one tap in the app can touch Raydium,
+      Meteora, Orca and a pump.fun curve in a single transaction, each emitting a
+      different event shape. Net balance deltas are venue-agnostic and collapse
+      multi-hop routes for free:
+    </p>
+    <div class="equation">
+      USDC <span class="arrow">→</span> SOL <span class="arrow">→</span> BONK
+      <span class="dim">nets to</span>
+      <span class="arrow">(</span>&minus;USDC, +BONK<span class="arrow">)</span>
+    </div>
+    <p>
+      The intermediate SOL leg can never be mirrored as a trade of its own.
+      Decoding per-leg events and mirroring each is how a copy bot ends up buying
+      the router's intermediate token and immediately re-selling it.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker">06 · Accounting</p>
+    <h2>What makes it a vault and not a bot</h2>
+    <p>
+      Shares, NAV, and a fee split. All of it on 1e18 fixed-point integers,
+      because a 1e&#8209;16 float error repeated across thousands of deposits
+      mints shares out of nothing, and every existing depositor pays for it.
+    </p>
+
+    <h3>Anti-dilution levy</h3>
+    <p>
+      A deposit into a fully-invested vault forces the vault to go buy the whole
+      book at market. Without a levy, the incoming member gets shares at a clean
+      NAV while existing members silently eat the slippage. The levy prices that
+      cost, is paid by whoever causes it, and stays in the vault for the members
+      who bore it. It scales with how invested the vault actually is — depositing
+      into a vault sitting in USDC forces no trading and costs nothing.
+    </p>
+
+    <h3>Per-lot high-water marks</h3>
+    <p>
+      Each deposit is its own lot with its own mark, consumed FIFO. A single
+      share-weighted average mark lets a member top up after a drawdown to drag
+      their own mark down, then pay fees on gains that merely recover earlier
+      losses. Lots defeat that.
+    </p>
+
+    <h3>Fees crystallise as share transfers</h3>
+    <p>
+      Not as cash. Nothing leaves the vault, no position has to be liquidated to
+      pay a fee, and NAV per share does not jump on the fee event. The leader
+      simply ends up owning more of the same pool.
+    </p>
+  </section>
+
+  <section>
+    <p class="kicker">07 · Open</p>
+    <h2>What is not built</h2>
+    <p>
+      The mirror engine, guardrails and ledger are working and tested against
+      Solana mainnet. These four are the remaining gaps, roughly in order of how
+      much they gate a launch.
+    </p>
+
+    <div class="open">
+      <span class="open-mark">01</span>
+      <div>
+        <h3>Custody</h3>
+        <p>The engine currently assumes a keypair it controls. A real product needs either a program-owned vault with on-chain share accounting, or a regulated custodial arrangement. This is the decision that gates everything else.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="open-mark">02</span>
+      <div>
+        <h3>Deposit and withdrawal plumbing</h3>
+        <p>The ledger computes shares, levies and fees correctly. Nothing yet wires it to actual transfers.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="open-mark">03</span>
+      <div>
+        <h3>Durable state</h3>
+        <p>The cursor and the processed-trade set live in memory. They must survive a restart or the vault re-mirrors trades it already took, with real money.</p>
+      </div>
+    </div>
+    <div class="open">
+      <span class="open-mark">04</span>
+      <div>
+        <h3>The other chains</h3>
+        <p>fomo also trades Base, BNB, Ethereum, Monad and Robinhood Chain. The chain adapter is the seam; the mirror and ledger layers are already chain-agnostic.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      Copy-trading replicates another account's transactions at the operator's
+      sole direction. Nothing here is investment advice. Operating a pooled
+      vehicle that takes other people's money is a regulated activity in most
+      jurisdictions — take advice before accepting a single outside deposit.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

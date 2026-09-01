@@ -1,0 +1,9 @@
+# Only web/ is served. The engine is a long-running poller and is not part of
+# this deployment; keeping it out of the upload keeps the deploy small.
+node_modules
+src
+test
+scripts
+docs
+.env
+.env.*

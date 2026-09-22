@@ -15,6 +15,32 @@ connections — none of which survive being started fresh per request.
 > same unprocessed trades before either recorded a fill, and mirror everything
 > twice. If you want redundancy, run a standby that is not polling.
 
+## Privy setup (do this first)
+
+The wallets are **TEE-backed**, which decides the whole delegation API. Privy
+has two architectures and they do not share one:
+
+| Wallet type | Hook | Grants |
+|---|---|---|
+| On-device | `useDelegatedActions` | `delegateWallet` |
+| **TEE (this app)** | `useSessionSigners` | `addSessionSigners` |
+
+Calling the wrong one fails with *"useDelegatedActions is only supported for
+on-device execution"*. In the browser that error never reached the UI, so the
+Authorise button simply did nothing -- which is how this was found.
+
+So, in the Privy dashboard:
+
+1. Create a **session signer** (under Wallet infrastructure / key quorums).
+2. Put its id in `app/.env` as `VITE_PRIVY_SIGNER_ID`, and rebuild the app --
+   Vite inlines `VITE_` vars at build time, so a redeploy is required.
+3. Register an **authorisation keypair** and give the server its private key as
+   `PRIVY_AUTHORIZATION_PRIVATE_KEY`.
+
+The server needs Privy's `walletId` to request a signature. That is the `id`
+field on the user's wallet account, and Privy only issues it **once delegation
+exists** — so the app reads it after the grant and sends it to `/subscribe`.
+
 ## Prerequisites
 
 | | |

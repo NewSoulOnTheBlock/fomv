@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
-import { PrivyProvider, useDelegatedActions, usePrivy, useSolanaWallets } from "@privy-io/react-auth";
+import { PrivyProvider, usePrivy, useSessionSigners, useSolanaWallets } from "@privy-io/react-auth";
 
 /**
  * Authentication and delegation, behind one small interface.
@@ -19,6 +19,18 @@ import { PrivyProvider, useDelegatedActions, usePrivy, useSolanaWallets } from "
  * wallet. It does not hand over the key and does not let FOMV move funds to an
  * address of its choosing. The user can revoke at any time, and revocation is
  * immediate regardless of what the server believes.
+ *
+ * # Session signers, not delegated actions
+ *
+ * Privy has two wallet architectures and they do not share an API. On-device
+ * wallets use `useDelegatedActions`; TEE wallets -- the newer default -- reject
+ * that hook outright and use `useSessionSigners` instead. This app is on TEE,
+ * so calling the wrong one failed with a message that never reached the UI and
+ * looked, to the user, like a dead button.
+ *
+ * A session signer needs a signer id, created once in the Privy dashboard and
+ * supplied as `VITE_PRIVY_SIGNER_ID`. Without it the flow cannot start, so the
+ * UI says exactly that rather than letting the click go nowhere.
  */
 
 export interface Auth {
@@ -29,8 +41,16 @@ export interface Auth {
   displayName: string | null;
   /** The user's Solana address, once an embedded wallet exists. */
   walletAddress: string | null;
+  /**
+   * Privy's server-side id for that wallet, which the follow server needs in
+   * order to request a signature. Null until delegation exists -- Privy only
+   * issues it once the wallet is delegated.
+   */
+  walletId: string | null;
   /** True when this server may sign trades for the wallet. */
   isDelegated: boolean;
+  /** False when VITE_PRIVY_SIGNER_ID is missing, so delegation cannot start. */
+  canDelegate: boolean;
   login: () => void;
   logout: () => void;
   /** Prompt the user to authorise trade signing. */
@@ -38,8 +58,9 @@ export interface Auth {
   /**
    * Withdraw that authorisation.
    *
-   * Privy revokes *every* wallet the user has delegated, not just this one, so
-   * the UI says as much rather than implying a narrower action.
+   * Session signers are removed per wallet, so this affects only the wallet in
+   * hand -- unlike the older delegated-actions API, which revoked every wallet
+   * the user had ever delegated.
    */
   revoke: () => Promise<void>;
 }
@@ -54,7 +75,9 @@ const UNCONFIGURED: Auth = {
   authenticated: false,
   displayName: null,
   walletAddress: null,
+  walletId: null,
   isDelegated: false,
+  canDelegate: false,
   login: () => {},
   logout: () => {},
   delegate: notConfigured,
@@ -97,36 +120,45 @@ export function AuthProvider({ appId, children }: { appId: string | undefined; c
   );
 }
 
+const SIGNER_ID = import.meta.env.VITE_PRIVY_SIGNER_ID as string | undefined;
+
 function PrivyBridge({ children }: { children: ReactNode }) {
   const { ready, authenticated, user, login, logout } = usePrivy();
   const { wallets } = useSolanaWallets();
-  const { delegateWallet, revokeWallets } = useDelegatedActions();
+  const { addSessionSigners, removeSessionSigners } = useSessionSigners();
 
   const address = wallets[0]?.address ?? null;
 
   // Privy's user record is the authority on whether delegation stands. Reading
   // it here rather than tracking a local flag means the UI cannot drift out of
   // step with what the server is actually permitted to do.
-  const isDelegated = useMemo(
+  const account = useMemo(
     () =>
-      Boolean(
-        address &&
-          user?.linkedAccounts?.some(
-            (a) => (a as { address?: string; delegated?: boolean }).address === address &&
-              (a as { delegated?: boolean }).delegated === true,
-          ),
-      ),
+      user?.linkedAccounts?.find((a) => (a as { address?: string }).address === address) as
+        | { delegated?: boolean; id?: string | null }
+        | undefined,
     [user, address],
   );
 
+  const isDelegated = Boolean(address && account?.delegated === true);
+  // Privy issues the server wallet id only once delegation exists, which is
+  // why this is read from the account rather than stored at sign-up.
+  const walletId = account?.id ?? null;
+
   const delegate = useCallback(async () => {
-    if (!address) throw new Error("No Solana wallet to delegate yet");
-    await delegateWallet({ address, chainType: "solana" });
-  }, [address, delegateWallet]);
+    if (!address) throw new Error("No Solana wallet yet - sign in first.");
+    if (!SIGNER_ID) {
+      throw new Error(
+        "VITE_PRIVY_SIGNER_ID is not set. Create a session signer in the Privy dashboard and put its id in app/.env.",
+      );
+    }
+    await addSessionSigners({ address, signers: [{ signerId: SIGNER_ID }] });
+  }, [address, addSessionSigners]);
 
   const revoke = useCallback(async () => {
-    await revokeWallets();
-  }, [revokeWallets]);
+    if (!address) return;
+    await removeSessionSigners({ address });
+  }, [address, removeSessionSigners]);
 
   const value = useMemo<Auth>(
     () => ({
@@ -141,13 +173,15 @@ function PrivyBridge({ children }: { children: ReactNode }) {
         user?.farcaster?.username ??
         (authenticated ? "signed in" : null),
       walletAddress: address,
+      walletId,
       isDelegated,
+      canDelegate: Boolean(SIGNER_ID),
       login: () => void login(),
       logout: () => void logout(),
       delegate,
       revoke,
     }),
-    [ready, authenticated, user, address, isDelegated, login, logout, delegate, revoke],
+    [ready, authenticated, user, address, walletId, isDelegated, login, logout, delegate, revoke],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

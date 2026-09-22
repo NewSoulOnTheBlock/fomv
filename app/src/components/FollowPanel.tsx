@@ -19,6 +19,16 @@ import { bps, shortAddress } from "@/lib/format";
  * read the limits before they click, not after.
  */
 
+/** Reject rather than hang if the wallet provider never settles. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("The wallet provider did not respond. Please try again.")), ms),
+    ),
+  ]);
+}
+
 export function FollowPanel({ vault }: { vault: RosterEntry }) {
   const auth = useAuth();
   const [busy, setBusy] = useState<"delegate" | "revoke" | null>(null);
@@ -28,12 +38,20 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
     setBusy(kind);
     setError(null);
     try {
-      await fn();
+      // Bounded, because a provider that neither resolves nor rejects would
+      // otherwise leave the button reading "Waiting for your approval" for
+      // ever -- which is exactly how a genuine failure first presented.
+      await withTimeout(fn(), 90_000);
     } catch (e) {
-      // A user closing the consent modal is the common path here, not a fault.
-      const msg = (e as Error).message ?? String(e);
-      setError(/reject|cancel|closed|denied/i.test(msg) ? null : msg);
+      const msg = (e as Error)?.message ?? String(e);
+      // Only a deliberate dismissal is silent. The previous version also
+      // matched "denied", so a real permission failure vanished and the button
+      // simply looked broken.
+      const dismissed = /user (rejected|cancelled|canceled)|modal closed|dismissed/i.test(msg);
+      setError(dismissed ? null : msg);
     } finally {
+      // Always, including the timeout path. A stuck spinner tells the user
+      // nothing and hides the thing that went wrong.
       setBusy(null);
     }
   };
@@ -58,6 +76,7 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
           vault={vault}
           address={auth.walletAddress}
           busy={busy === "delegate"}
+          canDelegate={auth.canDelegate}
           onDelegate={() => run("delegate", auth.delegate)}
         />
       )}
@@ -82,11 +101,13 @@ function NotFollowing({
   vault,
   address,
   busy,
+  canDelegate,
   onDelegate,
 }: {
   vault: RosterEntry;
   address: string;
   busy: boolean;
+  canDelegate: boolean;
   onDelegate: () => void;
 }) {
   return (
@@ -121,8 +142,14 @@ function NotFollowing({
         </div>
       </div>
 
-      <button className="primary" style={{ width: "100%", marginTop: "1rem" }} onClick={onDelegate} disabled={busy}>
-        {busy ? "Waiting for your approval…" : "Authorise trade signing"}
+      <button
+        className="primary"
+        style={{ width: "100%", marginTop: "1rem" }}
+        onClick={onDelegate}
+        disabled={busy || !canDelegate}
+        title={canDelegate ? undefined : "VITE_PRIVY_SIGNER_ID is not configured"}
+      >
+        {busy ? "Waiting for your approval…" : canDelegate ? "Authorise trade signing" : "Signing not configured"}
       </button>
 
       <p className="small faint mono" style={{ marginTop: "0.6rem", marginBottom: 0 }}>
@@ -181,8 +208,8 @@ function Following({
       </button>
 
       <p className="small faint" style={{ marginTop: "0.6rem", marginBottom: 0 }}>
-        Revoking withdraws signing permission from <em>every</em> wallet you have delegated, takes
-        effect immediately, and leaves your balances untouched — nothing is sold and nothing moves.
+        Revoking withdraws signing permission immediately and leaves your balances untouched —
+        nothing is sold and nothing moves.
       </p>
     </>
   );

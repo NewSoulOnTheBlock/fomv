@@ -12,3 +12,10 @@ state/
 
 # npm was used once on a machine without bun; the project ships bun.lock.
 package-lock.json
+
+# The templates are the documentation; only the filled-in copies are secret.
+# `.env*` above matches these too, and a negation has to name the whole
+# basename -- `*.env.example` does not match `.env.production.example`, which
+# ends in `.example` rather than in `.env.example`.
+!.env.example
+!.env.production.example

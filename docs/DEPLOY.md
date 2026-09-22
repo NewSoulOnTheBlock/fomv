@@ -1,8 +1,23 @@
-# Deploying the FOMV follow server
+# Deploying FOMV
 
-The front end is a static site and deploys itself. This is about the other
-half: a long-running process that mirrors a leader's swaps into subscribers'
-own wallets.
+Both halves live on one host and one origin: the built front end served by
+nginx at `/`, and the follow server proxied at `/api`.
+
+## Why one origin rather than a CDN and a subdomain
+
+The alternative — front end on Vercel, API on `api.` — is a perfectly good
+shape and costs a class of problems this one does not have. A CORS allow-list
+to keep in step with wherever the front end was deployed this week. A preflight
+on every write. A second certificate. A browser that refuses the call
+altogether if the API is ever reached over plain http.
+
+Here the browser only ever talks to one origin. `FOMV_ALLOWED_ORIGINS` can stay
+empty, the preflight never happens, and there is no way to deploy the front end
+somewhere the API has not been told about. The app routes on the hash, so it
+needs no rewrite rules either.
+
+`vercel.json` is still in the repository and still works, if that trade ever
+looks better.
 
 ## What it is, operationally
 
@@ -46,6 +61,32 @@ Two more that are optional to *boot* and required to be useful:
   these endpoints carry a bearer token and a wildcard would let any page spend
   a user's session.
 
+## The front end
+
+Built on a workstation and rsynced. The build needs a few hundred megabytes of
+dev dependencies, and installing those on a box whose job is to hold RPC
+connections and sign trades is a poor trade for a directory of static files
+that can be produced anywhere.
+
+```bash
+cp app/.env.production.example app/.env.production   # then fill it in
+deploy/push-web.sh root@HOST
+```
+
+**Vite inlines `VITE_*` at build time.** There is no runtime configuration to
+correct afterwards: a build made without an app id ships a site where sign-in
+is permanently dead, and it looks exactly like a working one until somebody
+tries to click it. `push-web.sh` names what is missing before it builds.
+
+`VITE_FOMV_API` is deliberately not in that file — the script sets it to `/api`
+on the command line, because the origin is decided by where the build is going
+rather than by a file that travels with the repo.
+
+The script also regenerates `app/public/data` first. The roster and every audit
+are static JSON read at runtime, and building without that step ships whatever
+happened to be in the working tree, which is how a stale audit gets published
+without anyone deciding to.
+
 ## Steps
 
 ```bash
@@ -60,11 +101,20 @@ ssh root@HOST nano /opt/fomv/app/.env
 deploy/push.sh root@HOST
 
 # Once a DNS A record points at the host.
-ssh root@HOST bash /root/fomv-deploy/web.sh api.example.com
+ssh root@HOST bash /root/fomv-deploy/web.sh fomv.example.com
 
 ssh root@HOST systemctl start fomv
 ssh root@HOST journalctl -fu fomv
 ```
+
+`web.sh` refuses to run if the name does not already resolve to this host,
+because failing inside certbot costs a rate limit rather than a message. It
+also removes Ubuntu's catch-all vhost, which otherwise answers the certificate
+challenge from the wrong server block.
+
+If the DNS record was changed minutes ago, the server's own resolver may still
+hold the previous answer and the check will refuse on a stale cache. Flush it:
+`resolvectl flush-caches`.
 
 `install.sh` is idempotent and re-running it is how the unit gets updated.
 `push.sh` restarts the service only if it was already running, so it cannot

@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 
+import { Figure } from "@/components/Figure";
 import { cn } from "@/lib/utils";
 import { EMPTY, bandOf } from "@/lib/format";
 
@@ -128,7 +129,9 @@ export function Stat({
         className={cn("tnum mt-2 leading-[1.05] tracking-[-0.035em]", sizes[size])}
         style={tone ? { color: tone } : undefined}
       >
-        {value}
+        {/* Strings go through `Figure` so the reading settles; anything else
+            is already a node the caller composed and is left alone. */}
+        {typeof value === "string" ? <Figure>{value}</Figure> : value}
       </div>
       {sub && <div className="mt-1.5 text-[12.5px] leading-snug text-faint">{sub}</div>}
     </div>

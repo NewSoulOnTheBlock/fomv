@@ -8,6 +8,7 @@ import { CopyAddress } from "@/components/CopyAddress";
 import { Callout, FactLine, Panel, PanelBody, PanelHead, Stat } from "@/components/term";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Figure } from "@/components/Figure";
 import { dimensionsFor } from "@/lib/dimensions";
 import { operatorHint } from "@/lib/operator";
 import { bandColor, count, pct, ratio, relative, score, shortAddress, signOf, signedUsd } from "@/lib/format";
@@ -101,7 +102,7 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
                   label="edge score"
                   value={
                     <span className="bloom" style={{ color: bandColor(p?.edgeScore ?? null) }}>
-                      {score(p?.edgeScore ?? null)}
+                      <Figure>{score(p?.edgeScore ?? null)}</Figure>
                     </span>
                   }
                   size="lg"

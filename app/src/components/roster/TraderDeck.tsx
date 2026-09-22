@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Plus } from "lucide-react";
 
 import { LISTING_TERMS } from "@engine/platform/listing.js";
 import { EdgePentagon } from "@/components/viz/EdgePentagon";
 import { Sparkline } from "@/components/viz/Sparkline";
+import { Figure } from "@/components/Figure";
 import { dimensionsFor } from "@/lib/dimensions";
 import { bandColor, count, pct, ratio, relative, score, signOf, signedUsd } from "@/lib/format";
 import { href } from "@/lib/router";
@@ -82,11 +83,22 @@ export function TraderDeck({
     [cards.length],
   );
 
+  const drag = useDeckGesture(move);
+
   return (
     <div className={cn("select-none", className)}>
       <div
         role="group"
         aria-label="The roster"
+        tabIndex={0}
+        // Written with pointer events rather than a drag library. The cards are
+        // links, and a gesture layer that owns the pointer has to hand a real
+        // click back through them; doing it directly is forty lines and leaves
+        // nothing to guess about when it does not fire.
+        onPointerDown={drag.down}
+        onPointerUp={drag.up}
+        onPointerCancel={drag.cancel}
+        onWheel={drag.wheel}
         onKeyDown={(e) => {
           if (e.key === "ArrowRight") {
             e.preventDefault();
@@ -100,7 +112,7 @@ export function TraderDeck({
         // Clipped, so a fan wider than the viewport bleeds off the edge
         // instead of widening the document. Scaled down on small screens for
         // the same reason: a 280px card in a 390px window leaves no fan.
-        className="relative mx-auto h-[300px] overflow-hidden sm:h-[380px] lg:h-[440px]"
+        className="relative mx-auto h-[300px] cursor-grab overflow-hidden outline-none active:cursor-grabbing sm:h-[380px] lg:h-[440px]"
         style={{ perspective: "1400px" }}
       >
         <div className="absolute inset-0 flex origin-center scale-[0.62] items-center justify-center sm:scale-[0.82] lg:scale-100">
@@ -176,6 +188,10 @@ function Card({
   onFocus: () => void;
   style: React.CSSProperties;
 }) {
+  // A drag that ends on a card would otherwise follow its link. The pointer
+  // distance is measured on the card itself rather than read from the drag
+  // state, so a click is a click however the deck was being handled.
+  const guard = useDragGuard();
   const base =
     "absolute h-[400px] w-[262px] rounded-2xl text-left transition-all duration-500 ease-out " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60";
@@ -186,6 +202,9 @@ function Card({
         href={href("/apply")}
         onMouseEnter={onFocus}
         onFocus={onFocus}
+        draggable={false}
+        onPointerDown={guard.down}
+        onClick={guard.click}
         style={style}
         className={cn(
           base,
@@ -219,6 +238,9 @@ function Card({
       href={href(`/t/${entry.leader}`)}
       onMouseEnter={onFocus}
       onFocus={onFocus}
+      draggable={false}
+      onPointerDown={guard.down}
+      onClick={guard.click}
       style={style}
       className={cn(
         base,
@@ -284,7 +306,7 @@ function Card({
             className="tnum mt-1.5 text-[28px] font-semibold leading-none tracking-[-0.04em]"
             style={{ color: bandColor(edge) }}
           >
-            {score(edge)}
+            <Figure>{score(edge)}</Figure>
           </div>
           <div className="mt-1.5 text-[11px] text-faint">
             {c ? `${count(c.closedEpisodes)} round trips` : "not audited"}
@@ -296,7 +318,7 @@ function Card({
             className="tnum mt-1.5 text-[20px] font-semibold leading-none tracking-[-0.03em]"
             style={{ color: signOf(pnl) ? `var(--${signOf(pnl)})` : undefined }}
           >
-            {signedUsd(pnl, { compact: true })}
+            <Figure>{signedUsd(pnl, { compact: true })}</Figure>
           </div>
           <div className="mt-1.5 text-[11px] text-faint">
             {c ? `pf ${ratio(c.profitFactor)} · win ${pct(c.winRate)}` : "—"}
@@ -324,5 +346,67 @@ function Card({
         </span>
       </div>
     </a>
+  );
+}
+
+/**
+ * Tells a click from the end of a drag.
+ *
+ * Without it, throwing the deck sideways navigates to whichever card happened
+ * to be under the finger when it lifted -- which is the single most annoying
+ * thing a draggable carousel can do.
+ */
+function useDragGuard(threshold = 6) {
+  const start = useMemo(() => ({ x: 0, y: 0 }), []);
+  return {
+    down: (e: React.PointerEvent) => {
+      start.x = e.clientX;
+      start.y = e.clientY;
+    },
+    click: (e: React.MouseEvent) => {
+      const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+      if (moved > threshold) e.preventDefault();
+    },
+  };
+}
+
+/**
+ * Push the deck sideways, with a finger or a trackpad.
+ *
+ * A fan of cards is an object, and an object you cannot push is a picture of
+ * one. Sixty pixels of travel moves it by one -- far enough that holding a
+ * card still does not count as a shove, close enough that a flick does.
+ *
+ * Horizontal wheel movement is the same gesture on a trackpad, throttled so
+ * one two-finger swipe advances one card rather than however many frames the
+ * browser chose to send.
+ */
+function useDeckGesture(move: (delta: number) => void, threshold = 60) {
+  const start = useRef<number | null>(null);
+  const lastWheel = useRef(0);
+
+  return useMemo(
+    () => ({
+      down: (e: React.PointerEvent) => {
+        start.current = e.clientX;
+      },
+      up: (e: React.PointerEvent) => {
+        if (start.current === null) return;
+        const travelled = e.clientX - start.current;
+        start.current = null;
+        if (Math.abs(travelled) > threshold) move(travelled > 0 ? -1 : 1);
+      },
+      cancel: () => {
+        start.current = null;
+      },
+      wheel: (e: React.WheelEvent) => {
+        if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+        const now = Date.now();
+        if (now - lastWheel.current < 260) return;
+        lastWheel.current = now;
+        move(e.deltaX > 0 ? 1 : -1);
+      },
+    }),
+    [move, threshold],
   );
 }

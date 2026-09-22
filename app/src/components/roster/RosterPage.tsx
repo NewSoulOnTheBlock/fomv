@@ -9,6 +9,7 @@ import { Sparkline } from "@/components/viz/Sparkline";
 import { FactLine, Panel, PanelBody, SectionRule } from "@/components/term";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Figure } from "@/components/Figure";
 import { dimensionsFor } from "@/lib/dimensions";
 import { bandColor, bps, count, pct, ratio, relative, score, signOf, signedUsd } from "@/lib/format";
 import { href } from "@/lib/router";
@@ -110,7 +111,7 @@ function Headline({ value, label, tone }: { value: string; label: string; tone?:
   return (
     <div className="px-6 py-6">
       <div className="tnum text-[30px] font-semibold leading-none tracking-[-0.035em]" style={tone ? { color: tone } : undefined}>
-        {value}
+        <Figure>{value}</Figure>
       </div>
       <div className="term-label mt-2.5">{label}</div>
     </div>
@@ -229,7 +230,7 @@ function Cell({
     <div className="min-w-[104px]">
       <div className="term-label">{label}</div>
       <div className="tnum mt-2 text-[23px] font-semibold leading-none tracking-[-0.035em]" style={tone ? { color: tone } : undefined}>
-        {value}
+        <Figure>{value}</Figure>
       </div>
       {sub !== undefined && <div className="mt-2 text-[12px] text-faint">{sub}</div>}
     </div>

@@ -9,6 +9,7 @@ import {
   SectionRule,
   Stat,
 } from "@/components/term";
+import { Figure } from "@/components/Figure";
 import { PriceSourceNote } from "@/components/trader/PriceSourceNote";
 import { WithheldGrade } from "@/components/trader/WithheldGrade";
 import { DIMENSION_META } from "@/lib/dimensions";
@@ -320,7 +321,7 @@ function Dimension({
         className="tnum hidden w-14 text-right text-[24px] font-semibold leading-none sm:block"
         style={{ color: value === null ? "var(--faint)" : bandColor(value) }}
       >
-        {score(value)}
+        <Figure>{score(value)}</Figure>
       </span>
     </div>
   );
@@ -478,7 +479,7 @@ function Metric({
         className="tnum mt-2.5 text-[27px] font-semibold leading-none tracking-[-0.035em]"
         style={tone ? { color: tone } : undefined}
       >
-        {v === EMPTY ? <span className="text-faint">{EMPTY}</span> : v}
+        {v === EMPTY ? <span className="text-faint">{EMPTY}</span> : <Figure>{v}</Figure>}
       </div>
       {note && <div className="mt-3 text-[12.5px] leading-snug text-faint">{note}</div>}
     </div>

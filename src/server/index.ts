@@ -8,6 +8,7 @@ import { PrivyDelegatedSigner } from "../chains/solana/privy-signer.js";
 import { followCycle, type FollowDeps } from "../follow/runner.js";
 import { makeFeeTerms } from "../follow/fees.js";
 import type { Subscriber } from "../follow/subscriber.js";
+import { LAUNCH_ROSTER, payoutAddressOf } from "../platform/roster.js";
 import { createHandler } from "./api.js";
 import { createPrivyClient, userApiFor, walletApiFor } from "./privy.js";
 import { Store } from "./store.js";
@@ -52,7 +53,8 @@ const cfg = {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean),
-  tradeFeeBps: Number(process.env.FOMV_TRADE_FEE_BPS ?? 25),
+  tradeFeeBps: Number(process.env.FOMV_TRADE_FEE_BPS ?? 100),
+  leaderShareBps: Number(process.env.FOMV_LEADER_SHARE_BPS ?? 5_000),
 };
 
 function required(name: string): string {
@@ -77,7 +79,10 @@ const conn = new Connection(cfg.rpcUrl, "confirmed");
 const txConn = cfg.txRpcUrl === cfg.rpcUrl ? conn : new Connection(cfg.txRpcUrl, "confirmed");
 const data = new SolanaMarketData(conn);
 
-const feeTerms = makeFeeTerms(cfg.treasury, { tradeFeeBps: cfg.tradeFeeBps });
+const feeTerms = makeFeeTerms(cfg.treasury, {
+  tradeFeeBps: cfg.tradeFeeBps,
+  leaderShareBps: cfg.leaderShareBps,
+});
 const feeLedger = store.loadFeeLedger();
 
 /**
@@ -110,6 +115,12 @@ const deps: FollowDeps = {
   feeLedger,
   dryRun: !cfg.live,
 };
+
+/** First roster payout address, for the startup banner only. */
+function leaderPayoutPreview(): string {
+  const first = LAUNCH_ROSTER[0];
+  return first ? payoutAddressOf(first).slice(0, 8) + "…" : "roster empty";
+}
 
 let cycles = 0;
 let lastError: string | null = null;
@@ -200,7 +211,12 @@ console.log(`  mode      ${cfg.live ? "LIVE — real transactions will be signed
 console.log(`  api       http://localhost:${server.port}`);
 console.log(`  database  ${cfg.dbPath}`);
 console.log(`  interval  ${cfg.intervalMs / 1000}s`);
-console.log(`  fee       ${cfg.tradeFeeBps}bps per mirrored trade -> ${cfg.treasury.slice(0, 8)}…\n`);
+console.log(
+  `  fee       ${cfg.tradeFeeBps}bps per mirrored trade, ` +
+    `${(cfg.leaderShareBps / 100).toFixed(0)}% to the leader \u2192 ${leaderPayoutPreview()}, ` +
+    `rest to ${cfg.treasury.slice(0, 8)}\u2026`,
+);
+console.log();
 if (!cfg.live) console.log(`  Set MODE=live to sign real transactions.\n`);
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {

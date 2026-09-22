@@ -3,6 +3,7 @@ import { DelegationRevokedError } from "../chains/solana/signer.js";
 import { planCycle } from "../mirror/engine.js";
 import { tokenKey, type ExecutionResult, type LeaderTrade, type MarketInfo, type PortfolioSnapshot } from "../types.js";
 import { accrue, feeForTrade, type FeeLedger, type FeeTerms } from "./fees.js";
+import { LAUNCH_ROSTER, payoutAddressOf } from "../platform/roster.js";
 import { markRevoked, shouldMirror, type Subscriber } from "./subscriber.js";
 import { rememberCycle, vaultStateFromWallet, type FollowMemory } from "./wallet-state.js";
 import { utcDay } from "../runner.js";
@@ -181,7 +182,10 @@ async function mirrorInto(args: {
     // subscriber's trade -- their execution must never depend on our invoice.
     if (!deps.dryRun) {
       const fee = feeForTrade(result.filledUsd, deps.feeTerms);
-      accrue(deps.feeLedger, sub.address, fee);
+      accrue(deps.feeLedger, sub.address, fee, {
+        treasury: deps.feeTerms.treasury,
+        leaderPayout: leaderPayoutFor(sub.leader),
+      });
       feesAccruedUsd += fee.feeUsd;
     }
   }
@@ -207,6 +211,18 @@ function rollDayFor(memory: FollowMemory, sub: Subscriber, nowMs: number): void 
   if (marker === day) return;
   (sub as Subscriber & { utcDay?: string }).utcDay = day;
   memory.deployedTodayUsd = 0;
+}
+
+/**
+ * Where this leader's half of the fee goes.
+ *
+ * Falls back to the leader's own address when the roster carries no payout
+ * address, which is the only key we can be sure they hold -- with the caveat
+ * recorded in `roster.ts` that it is also the wallet being watched.
+ */
+function leaderPayoutFor(leader: string): string {
+  const entry = LAUNCH_ROSTER.find((r) => r.leader === leader);
+  return entry ? payoutAddressOf(entry) : leader;
 }
 
 function oldestCursor(subscribers: Subscriber[]): string | null {

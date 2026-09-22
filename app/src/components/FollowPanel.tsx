@@ -54,7 +54,12 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
       ) : auth.isDelegated ? (
         <Following vault={vault} address={auth.walletAddress} busy={busy === "revoke"} onRevoke={() => run("revoke", auth.revoke)} />
       ) : (
-        <NotFollowing address={auth.walletAddress} busy={busy === "delegate"} onDelegate={() => run("delegate", auth.delegate)} />
+        <NotFollowing
+          vault={vault}
+          address={auth.walletAddress}
+          busy={busy === "delegate"}
+          onDelegate={() => run("delegate", auth.delegate)}
+        />
       )}
 
       {error && (
@@ -66,11 +71,20 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
   );
 }
 
+/** e.g. "half (0.5%)" — stated in both forms so neither has to be inferred. */
+function splitLabel(): string {
+  const share = DEFAULT_FEE_TERMS.leaderShareBps / 10_000;
+  const asPct = (DEFAULT_FEE_TERMS.tradeFeeBps * share) / 100;
+  return `${(share * 100).toFixed(0)}% (${asPct.toFixed(2)}%)`;
+}
+
 function NotFollowing({
+  vault,
   address,
   busy,
   onDelegate,
 }: {
+  vault: RosterEntry;
   address: string;
   busy: boolean;
   onDelegate: () => void;
@@ -94,6 +108,10 @@ function NotFollowing({
           <span className="v">{bps(DEFAULT_FEE_TERMS.tradeFeeBps)}</span>
         </div>
         <div className="line">
+          <span className="muted">— of which to {vault.handle}</span>
+          <span className="v">{splitLabel()}</span>
+        </div>
+        <div className="line">
           <span className="muted">Trades under ${DEFAULT_FEE_TERMS.minChargeableUsd}</span>
           <span className="v">free</span>
         </div>
@@ -113,7 +131,8 @@ function NotFollowing({
       <p className="small faint" style={{ marginBottom: 0 }}>
         Fees are charged on trade notional rather than profit, because a wallet you
         also trade yourself has no cost basis FOMV can honestly measure. In a losing
-        month that is worse for you than a performance fee would be.
+        month that is worse for you than a performance fee would be. Half of every
+        fee goes to {vault.handle} — they supply the only thing you are paying for.
       </p>
     </>
   );
@@ -150,6 +169,10 @@ function Following({
         <div className="line">
           <span className="muted">Fee per mirrored trade</span>
           <span className="v">{bps(DEFAULT_FEE_TERMS.tradeFeeBps)}</span>
+        </div>
+        <div className="line">
+          <span className="muted">— of which to {vault.handle}</span>
+          <span className="v">{splitLabel()}</span>
         </div>
       </div>
 

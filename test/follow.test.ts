@@ -10,8 +10,11 @@ import {
   createFeeLedger,
   feeForTrade,
   makeFeeTerms,
+  payout,
   settle,
   totalOwed,
+  totalPayable,
+  DEFAULT_FEE_TERMS,
   MAX_TRADE_FEE_BPS,
 } from "../src/follow/fees.js";
 import {
@@ -169,11 +172,35 @@ describe("subscriber lifecycle", () => {
 describe("per-trade fees", () => {
   const terms = () => makeFeeTerms("TREASURY");
 
-  test("charges the filled notional, not the intended size", () => {
+  test("charges 1% of the filled notional, not the intended size", () => {
     const f = feeForTrade(1_000, terms());
-    expect(f.feeUsd).toBeCloseTo(2.5, 9);
-    expect(f.bps).toBe(25);
+    expect(f.feeUsd).toBeCloseTo(10, 9);
+    expect(f.bps).toBe(100);
     expect(f.waived).toBeNull();
+  });
+
+  test("splits the fee evenly with the trader being copied", () => {
+    const f = feeForTrade(1_000, terms());
+    expect(f.leaderUsd).toBeCloseTo(5, 9);
+    expect(f.platformUsd).toBeCloseTo(5, 9);
+  });
+
+  test("the two halves always sum to exactly what was charged", () => {
+    // The platform share is the remainder rather than its own multiplication.
+    // Two independent roundings would leave a residue belonging to nobody,
+    // which surfaces later as a ledger that refuses to reconcile.
+    for (const notional of [20, 33.33, 1_000, 12_345.67, 999_999.99]) {
+      for (const share of [0, 1, 2_500, 5_000, 7_777, 10_000]) {
+        const f = feeForTrade(notional, makeFeeTerms("T", { leaderShareBps: share }));
+        expect(f.platformUsd + f.leaderUsd).toBeCloseTo(f.feeUsd, 12);
+      }
+    }
+  });
+
+  test("a zero leader share sends everything to the platform", () => {
+    const f = feeForTrade(1_000, makeFeeTerms("T", { leaderShareBps: 0 }));
+    expect(f.leaderUsd).toBe(0);
+    expect(f.platformUsd).toBeCloseTo(f.feeUsd, 12);
   });
 
   test("small trades are free rather than charged in dust", () => {
@@ -187,28 +214,57 @@ describe("per-trade fees", () => {
     expect(() => makeFeeTerms("", {})).toThrow(/treasury must be set/);
   });
 
+  test("the published default sits exactly at the ceiling", () => {
+    // Which means the headline rate cannot be raised without a code change.
+    expect(DEFAULT_FEE_TERMS.tradeFeeBps).toBe(MAX_TRADE_FEE_BPS);
+    expect(() => makeFeeTerms("T")).not.toThrow();
+  });
+
+  test("refuses a nonsensical split", () => {
+    expect(() => makeFeeTerms("T", { leaderShareBps: 10_001 })).toThrow(/leaderShareBps/);
+    expect(() => makeFeeTerms("T", { leaderShareBps: -1 })).toThrow(/leaderShareBps/);
+  });
+
   test("fees accrue per subscriber and settle down to zero", () => {
     const ledger = createFeeLedger();
     const t = terms();
-    accrue(ledger, "A", feeForTrade(1_000, t));
-    accrue(ledger, "A", feeForTrade(2_000, t));
-    accrue(ledger, "B", feeForTrade(400, t));
+    accrue(ledger, "A", feeForTrade(1_000, t), { treasury: "TREASURY", leaderPayout: "LEADERPAY" });
+    accrue(ledger, "A", feeForTrade(2_000, t), { treasury: "TREASURY", leaderPayout: "LEADERPAY" });
+    accrue(ledger, "B", feeForTrade(400, t), { treasury: "TREASURY", leaderPayout: "LEADERPAY" });
 
-    expect(ledger.owed.get("A")).toBeCloseTo(7.5, 9);
-    expect(ledger.owed.get("B")).toBeCloseTo(1, 9);
-    expect(totalOwed(ledger)).toBeCloseTo(8.5, 9);
+    expect(ledger.owed.get("A")).toBeCloseTo(30, 9);
+    expect(ledger.owed.get("B")).toBeCloseTo(4, 9);
+    expect(totalOwed(ledger)).toBeCloseTo(34, 9);
 
-    settle(ledger, "A", 7.5);
+    settle(ledger, "A", 30);
     expect(ledger.owed.get("A")).toBeCloseTo(0, 9);
-    expect(ledger.collected.get("A")).toBeCloseTo(7.5, 9);
+    expect(ledger.collected.get("A")).toBeCloseTo(30, 9);
+  });
+
+  test("what subscribers owe equals what the two payees are owed", () => {
+    const ledger = createFeeLedger();
+    const t = terms();
+    accrue(ledger, "A", feeForTrade(1_000, t), { treasury: "TREASURY", leaderPayout: "LEADERPAY" });
+    accrue(ledger, "B", feeForTrade(2_500, t), { treasury: "TREASURY", leaderPayout: "LEADERPAY" });
+    expect(totalPayable(ledger)).toBeCloseTo(totalOwed(ledger), 9);
+    expect(ledger.payableTo.get("TREASURY")).toBeCloseTo(17.5, 9);
+    expect(ledger.payableTo.get("LEADERPAY")).toBeCloseTo(17.5, 9);
+  });
+
+  test("paying a payee draws down only what was payable", () => {
+    const ledger = createFeeLedger();
+    accrue(ledger, "A", feeForTrade(1_000, terms()), { treasury: "TREASURY", leaderPayout: "LEADERPAY" });
+    payout(ledger, "LEADERPAY", 999);
+    expect(ledger.payableTo.get("LEADERPAY")).toBeCloseTo(0, 9);
+    expect(ledger.paidTo.get("LEADERPAY")).toBeCloseTo(5, 9);
   });
 
   test("overpaying settles only what was owed", () => {
     const ledger = createFeeLedger();
-    accrue(ledger, "A", feeForTrade(1_000, terms()));
+    accrue(ledger, "A", feeForTrade(1_000, terms()), { treasury: "TREASURY", leaderPayout: "LEADERPAY" });
     settle(ledger, "A", 100);
     expect(ledger.owed.get("A")).toBeCloseTo(0, 9);
-    expect(ledger.collected.get("A")).toBeCloseTo(2.5, 9);
+    expect(ledger.collected.get("A")).toBeCloseTo(10, 9);
   });
 });
 

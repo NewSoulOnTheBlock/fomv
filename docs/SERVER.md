@@ -117,10 +117,34 @@ Worth stating so nobody goes looking for it:
   are the thing to review before launch.
 - **It does not custody anything.** There is no pooled balance, no shares, no
   NAV. A subscriber's position is their own wallet.
-- **It does not collect fees automatically.** Fees accrue in the ledger and are
-  swept separately. Charging inside the swap would let a failed fee transfer
-  revert the subscriber's trade — their execution must never depend on our
-  invoice.
+- **It does not collect fees or pay leaders automatically.** Both sides accrue
+  in the ledger and are settled separately. Charging inside the swap would let
+  a failed fee transfer revert the subscriber's trade — their execution must
+  never depend on our invoice.
+
+## Fees
+
+1% of each mirrored trade's filled notional, **split evenly with the trader
+being copied**. Trades under $20 are free.
+
+The ledger keeps two views of the same money, because they answer different
+questions: `owed` is what each subscriber owes (what an account page shows and
+what collection chases), and `payableTo` is what each payee is owed (what the
+payout run needs).
+
+Two properties worth knowing before you touch the numbers:
+
+- The platform's share is computed as the **remainder**, not its own
+  multiplication, so the halves always sum to exactly what the subscriber was
+  charged. Two independent roundings would leave a residue belonging to nobody.
+- `FOMV_TRADE_FEE_BPS` defaults to 100, which is also the engine's ceiling. The
+  rate therefore cannot be raised without a code change and a release.
+
+Set `FOMV_LEADER_SHARE_BPS` to change the split (5000 = half). A leader's share
+goes to `payoutAddress` in `src/platform/roster.ts`, falling back to their
+trading address — **collect a separate payout address at listing**, because
+paying into the wallet being watched moves the very balances the strategy sizes
+against.
 
 ## Failure modes you will actually hit
 

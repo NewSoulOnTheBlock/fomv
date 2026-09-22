@@ -1,8 +1,10 @@
 import { type ReactNode } from "react";
 
 import { AccountChip } from "@/components/AccountChip";
+import { Ticker } from "@/components/layout/Ticker";
 import { cn } from "@/lib/utils";
 import { href, type Route } from "@/lib/router";
+import type { AppData, TraderProfile } from "@/lib/types";
 
 /**
  * The frame every page sits in.
@@ -27,7 +29,17 @@ const NAV: { label: string; path: string; match: Route["name"][] }[] = [
   { label: "Get listed", path: "/apply", match: ["apply"] },
 ];
 
-export function Shell({ route, children }: { route: Route; children: ReactNode }) {
+export function Shell({
+  route,
+  data,
+  profiles,
+  children,
+}: {
+  route: Route;
+  data: AppData | null;
+  profiles: Record<string, TraderProfile>;
+  children: ReactNode;
+}) {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Fixed, behind everything, and inert. See `.aurora` in styles.css. */}
@@ -37,6 +49,7 @@ export function Shell({ route, children }: { route: Route; children: ReactNode }
         <span className="a3" />
       </div>
       <div className="dither" aria-hidden />
+      <Ticker data={data} profiles={profiles} />
 
       <Header route={route} />
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-5 pb-24 sm:px-8">{children}</main>
@@ -135,11 +148,55 @@ function Footer() {
             href="https://fomo.family"
             target="_blank"
             rel="noreferrer noopener"
-            className="text-muted-foreground hover:text-foreground"
+            className="group inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
           >
+            {/* The mark ships pale lavender on transparent; dimmed to sit with
+                the rest of the footer and lit on hover like the label. */}
+            <img
+              src="/logos/fomo.png"
+              alt=""
+              width={17}
+              height={11}
+              decoding="async"
+              loading="lazy"
+              className="h-[11px] w-auto opacity-55 transition-opacity group-hover:opacity-100"
+            />
             fomo ↗
           </a>
         </nav>
+      </div>
+
+      {/*
+        A partnership credit, kept apart from the data attribution on the
+        roster page on purpose. That line says where the numbers came from and
+        every name on it is a provider the code actually calls; this one says
+        who FOMV is built with. Running them together would turn a credit into
+        a claim about the pipeline.
+      */}
+      <div className="border-t border-separator">
+        <a
+          href="https://www.fomoscan.sh"
+          target="_blank"
+          rel="noreferrer noopener"
+          className="group mx-auto flex max-w-[1200px] items-center justify-center gap-2.5 px-5 py-5 sm:px-8"
+        >
+          <span className="term-label">powered by</span>
+          {/* The icon has no alpha -- it is a square with its own dark ground.
+              Rounded and ringed so the edge reads as deliberate rather than as
+              a sprite that failed to cut out. */}
+          <img
+            src="/logos/fomoscan.webp"
+            alt=""
+            width={18}
+            height={18}
+            decoding="async"
+            loading="lazy"
+            className="size-[18px] rounded-[5px] ring-1 ring-white/10"
+          />
+          <span className="font-mono text-[13px] text-muted-foreground transition-colors group-hover:text-foreground">
+            fomoscan
+          </span>
+        </a>
       </div>
     </footer>
   );

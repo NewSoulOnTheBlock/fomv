@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 
 import { DEFAULT_FEE_TERMS } from "@engine/follow/fees.js";
@@ -29,32 +28,16 @@ import type { AppData, RosterEntry, TraderProfile } from "@/lib/types";
  * That ordering is the whole design. A roster that opened with a number would
  * be read as a ranking no matter what the copy said.
  */
-export function RosterPage({ data }: { data: AppData }) {
-  const [profiles, setProfiles] = useState<Record<string, TraderProfile>>({});
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all(
-      data.roster.map(async (r) => {
-        try {
-          const res = await fetch(`data/profiles/${r.leader}.json`);
-          return res.ok ? ([r.leader, (await res.json()) as TraderProfile] as const) : null;
-        } catch {
-          return null;
-        }
-      }),
-    ).then((rows) => {
-      if (cancelled) return;
-      setProfiles(
-        Object.fromEntries(rows.filter((x): x is readonly [string, TraderProfile] => x !== null)),
-      );
-      setLoaded(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [data]);
+export function RosterPage({
+  data,
+  profiles,
+}: {
+  data: AppData;
+  profiles: Record<string, TraderProfile>;
+}) {
+  // Fetched once in App and passed down: the ticker in the chrome needs the
+  // same files on every route.
+  const loaded = Object.keys(profiles).length > 0 || data.roster.length === 0;
 
   return (
     <div>

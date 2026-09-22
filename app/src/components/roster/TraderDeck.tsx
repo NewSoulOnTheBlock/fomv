@@ -230,16 +230,26 @@ function Card({
         <span className="truncate text-[15px] font-semibold tracking-[-0.02em]">
           {entry.handle}
         </span>
-        <span className="term-label shrink-0">{entry.chain}</span>
+        {/* The grade as a letter, in its own band colour. It is the one thing
+            on the card that can be read at any distance in the fan. */}
+        <span
+          className="flex size-7 shrink-0 items-center justify-center rounded-md font-mono text-[13px] font-semibold"
+          style={{
+            color: bandColor(edge),
+            background: `color-mix(in oklab, ${bandColor(edge)} 14%, transparent)`,
+          }}
+        >
+          {p && p.grade !== "insufficient-data" ? p.grade : "—"}
+        </span>
       </div>
 
-      <div className="relative flex flex-1 items-center justify-center py-2">
+      <div className="relative flex flex-1 items-center justify-center py-1">
         {focused && (
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0"
             style={{
-              background: `radial-gradient(60% 55% at 50% 45%, ${
+              background: `radial-gradient(58% 55% at 50% 45%, ${
                 edge === null ? "rgba(255,255,255,0.05)" : "var(--brand-soft)"
               }, transparent 70%)`,
             }}
@@ -248,14 +258,22 @@ function Card({
         <EdgePentagon
           dimensions={dimensionsFor(p?.dimensions)}
           score={edge}
-          size={210}
+          size={196}
           labels={false}
         />
       </div>
 
+      {/* The curve runs the full width under the shape, the way a card puts a
+          chart under a portrait. Below two periods there is no curve to draw
+          and a flat line would imply one. */}
+      {/*
+        Drawn only when there is a curve to draw. Not drawing it is already the
+        honest answer; captioning the absence turns a card into an apology, and
+        the trader's own page explains the threshold properly.
+      */}
       {buckets.length >= 2 && (
-        <div className="px-4 pb-1">
-          <Sparkline values={buckets} width={248} height={30} />
+        <div className="-mb-px">
+          <Sparkline values={buckets} width={260} height={34} className="w-full" />
         </div>
       )}
 
@@ -269,7 +287,7 @@ function Card({
             {score(edge)}
           </div>
           <div className="mt-1.5 text-[11px] text-faint">
-            {p?.grade === "insufficient-data" ? "no grade" : `grade ${p?.grade ?? "—"}`}
+            {c ? `${count(c.closedEpisodes)} round trips` : "not audited"}
           </div>
         </div>
         <div className="px-4 py-3">
@@ -281,17 +299,28 @@ function Card({
             {signedUsd(pnl, { compact: true })}
           </div>
           <div className="mt-1.5 text-[11px] text-faint">
-            {c ? `${count(c.closedEpisodes)} round trips` : "—"}
+            {c ? `pf ${ratio(c.profitFactor)} · win ${pct(c.winRate)}` : "—"}
           </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-separator px-4 py-2.5">
-        <span className="term-label">
-          {c ? `pf ${ratio(c.profitFactor)} · win ${pct(c.winRate)}` : "not audited"}
+      <div
+        className="flex items-center justify-between px-4 py-2.5"
+        style={{
+          background:
+            edge === null
+              ? "rgba(255,255,255,0.03)"
+              : `color-mix(in oklab, ${bandColor(edge)} 11%, transparent)`,
+          borderTop: `1px solid ${
+            edge === null ? "var(--separator)" : `color-mix(in oklab, ${bandColor(edge)} 24%, transparent)`
+          }`,
+        }}
+      >
+        <span className="term-label" style={{ color: bandColor(edge), opacity: 0.85 }}>
+          {entry.chain}
         </span>
         <span className="term-label">
-          {profile ? relative(profile.provenance.computedAtMs) : ""}
+          {profile ? `audited ${relative(profile.provenance.computedAtMs)}` : "audit pending"}
         </span>
       </div>
     </a>

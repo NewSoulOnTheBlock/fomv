@@ -146,7 +146,22 @@
 
   html {
     scroll-padding-top: 7rem;
-    background: var(--background);
+    /*
+     * A faint engineering grid under everything.
+     *
+     * Earlier it lived behind the header only, which made the chrome look
+     * instrumented and the rest of the page look like a document that happened
+     * to be dark. Across the whole thing it gives the aurora something to fall
+     * on -- light needs a surface to land on before it reads as light.
+     *
+     * 44px and four percent: any denser or brighter and it competes with the
+     * figures, which are the only things on this page allowed to be read.
+     */
+    background:
+      linear-gradient(to right, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+      var(--background);
+    background-size: 44px 44px, 44px 44px, auto;
   }
 
   body {
@@ -580,6 +595,16 @@
 }
 @keyframes drift-c {
   to { transform: translate3d(-12rem, -7rem, 0) scale(0.92); }
+}
+
+/*
+ * The ticker. Translated by exactly half, because the row is rendered twice --
+ * at -50% the second copy sits precisely where the first began, so the loop
+ * has no seam.
+ */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 @keyframes rise {

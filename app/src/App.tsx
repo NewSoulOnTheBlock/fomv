@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { operatorHint } from "@/lib/operator";
 import { href, useRoute, useScrollReset } from "@/lib/router";
-import type { AppData } from "@/lib/types";
+import type { AppData, TraderProfile } from "@/lib/types";
 
 /**
  * Routing and the one fetch the whole site depends on.
@@ -28,19 +28,44 @@ import type { AppData } from "@/lib/types";
 export function App() {
   const route = useRoute();
   const [data, setData] = useState<AppData | null>(null);
+  const [profiles, setProfiles] = useState<Record<string, TraderProfile>>({});
   const [error, setError] = useState<string | null>(null);
 
   useScrollReset(JSON.stringify(route));
 
   useEffect(() => {
+    let cancelled = false;
     fetch("data/app.json")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`app.json: ${r.status}`))))
-      .then(setData)
-      .catch((e) => setError(String(e)));
+      .then(async (d: AppData) => {
+        if (cancelled) return;
+        setData(d);
+        // Loaded here rather than in the roster, because the ticker in the
+        // chrome needs them on every route and two components fetching the
+        // same files would double the requests to show one figure.
+        const rows = await Promise.all(
+          d.roster.map(async (r) => {
+            try {
+              const res = await fetch(`data/profiles/${r.leader}.json`);
+              return res.ok ? ([r.leader, (await res.json()) as TraderProfile] as const) : null;
+            } catch {
+              return null;
+            }
+          }),
+        );
+        if (cancelled) return;
+        setProfiles(
+          Object.fromEntries(rows.filter((x): x is readonly [string, TraderProfile] => x !== null)),
+        );
+      })
+      .catch((e) => !cancelled && setError(String(e)));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
-    <Shell route={route}>
+    <Shell route={route} data={data} profiles={profiles}>
       {route.name === "apply" ? (
         <ApplyPage />
       ) : route.name === "docs" ? (
@@ -56,7 +81,7 @@ export function App() {
       ) : route.name === "not-found" ? (
         <NotFound path={route.path} />
       ) : (
-        <RosterPage data={data} />
+        <RosterPage data={data} profiles={profiles} />
       )}
     </Shell>
   );

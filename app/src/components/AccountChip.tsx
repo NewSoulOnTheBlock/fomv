@@ -1,11 +1,11 @@
 import { LogOut } from "lucide-react";
 
+import { CopyAddress } from "@/components/CopyAddress";
 import { SignInButton } from "@/components/SignInButton";
 import { Tag } from "@/components/term";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth";
-import { shortAddress } from "@/lib/format";
 
 /**
  * Who you are, in the header.
@@ -39,12 +39,15 @@ export function AccountChip() {
         <Tag className="hidden sm:inline-flex">not following</Tag>
       )}
 
-      <span
-        className="hidden sm:inline font-mono text-[12px] text-muted-foreground"
-        title={auth.displayName ?? undefined}
-      >
-        {auth.walletAddress ? shortAddress(auth.walletAddress, 4, 4) : "wallet pending…"}
-      </span>
+      {auth.walletAddress ? (
+        // Copyable, because the address is truncated here and this is the only
+        // place in the product it is shown at all.
+        <CopyAddress address={auth.walletAddress} className="hidden sm:inline-flex" />
+      ) : (
+        <span className="hidden sm:inline font-mono text-[12px] text-muted-foreground">
+          wallet pending…
+        </span>
+      )}
 
       <Button
         variant="ghost"

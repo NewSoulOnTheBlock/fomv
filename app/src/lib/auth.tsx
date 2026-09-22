@@ -104,7 +104,7 @@ export function AuthProvider({ appId, children }: { appId: string | undefined; c
         loginMethods: ["google", "twitter", "discord", "email"],
         appearance: {
           theme: "dark",
-          accentColor: "#4ade80",
+          accentColor: "#ffb224",
           landingHeader: "Sign in to FOMV",
           loginMessage: "Follow a curated trader with your own wallet.",
         },

@@ -55,6 +55,8 @@ const cfg = {
     .filter(Boolean),
   tradeFeeBps: Number(process.env.FOMV_TRADE_FEE_BPS ?? 100),
   leaderShareBps: Number(process.env.FOMV_LEADER_SHARE_BPS ?? 5_000),
+  // Absent disables the applications inbox rather than opening it.
+  adminToken: process.env.FOMV_ADMIN_TOKEN,
 };
 
 function required(name: string): string {
@@ -184,7 +186,12 @@ async function loop(): Promise<void> {
   }
 }
 
-const handler = createHandler({ store, privy, allowedOrigins: cfg.allowedOrigins });
+const handler = createHandler({
+  store,
+  privy,
+  allowedOrigins: cfg.allowedOrigins,
+  adminToken: cfg.adminToken,
+});
 
 const server = Bun.serve({
   port: cfg.port,
@@ -216,7 +223,9 @@ console.log(
     `${(cfg.leaderShareBps / 100).toFixed(0)}% to the leader \u2192 ${leaderPayoutPreview()}, ` +
     `rest to ${cfg.treasury.slice(0, 8)}\u2026`,
 );
-console.log();
+console.log(
+  `  inbox     ${cfg.adminToken ? "GET /admin/applications (bearer)" : "disabled — set FOMV_ADMIN_TOKEN"}\n`,
+);
 if (!cfg.live) console.log(`  Set MODE=live to sign real transactions.\n`);
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {

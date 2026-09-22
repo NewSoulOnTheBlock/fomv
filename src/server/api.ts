@@ -4,6 +4,8 @@ import { makePolicy } from "../policy.js";
 import { createSubscriber, markRevoked, transition, type Subscriber } from "../follow/subscriber.js";
 import { DEFAULT_FEE_TERMS } from "../follow/fees.js";
 import { LAUNCH_ROSTER } from "../platform/roster.js";
+import { LISTING_BAR, LISTING_TERMS } from "../platform/listing.js";
+import { createApplication, validateApplication } from "../platform/application.js";
 import { verifyCaller } from "./privy.js";
 import type { Store } from "./store.js";
 
@@ -27,7 +29,29 @@ export interface ApiDeps {
   privy: PrivyClient;
   /** Reject requests from unknown origins. Empty means same-origin only. */
   allowedOrigins: string[];
+  /**
+   * Bearer token guarding the applications inbox.
+   *
+   * Absent means the endpoint is not served at all. An admin route that falls
+   * back to "open" when its secret is missing is how a lead list ends up
+   * public the first time an environment variable is forgotten.
+   */
+  adminToken?: string;
 }
+
+/**
+ * Applications accepted per hour, process-wide.
+ *
+ * Deliberately a blunt global rather than a per-IP bucket. Behind a proxy the
+ * client IP is a header the client can set, so keying on it would be security
+ * theatre; the honest version is a cap on how much junk one process will store
+ * in an hour. A real trader who hits it during a flood can mail us, and the
+ * page says so.
+ */
+const APPLICATIONS_PER_HOUR = 40;
+
+/** Largest application body accepted, before parsing. */
+const MAX_APPLICATION_BYTES = 8_192;
 
 export function createHandler(deps: ApiDeps): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
@@ -39,7 +63,14 @@ export function createHandler(deps: ApiDeps): (req: Request) => Promise<Response
     try {
       if (url.pathname === "/health") return json({ ok: true }, 200, cors);
       if (url.pathname === "/leaders") return json({ leaders: LAUNCH_ROSTER.map(publicLeader) }, 200, cors);
-      if (url.pathname === "/terms") return json({ fees: DEFAULT_FEE_TERMS }, 200, cors);
+      if (url.pathname === "/terms") {
+        return json({ fees: DEFAULT_FEE_TERMS, listing: LISTING_TERMS, bar: LISTING_BAR }, 200, cors);
+      }
+
+      if (url.pathname === "/apply" && req.method === "POST") return apply(req, deps, cors);
+      if (url.pathname === "/admin/applications" && req.method === "GET") {
+        return applications(req, deps, cors);
+      }
 
       if (url.pathname === "/subscribe" && req.method === "POST") return subscribe(req, deps, cors);
       if (url.pathname === "/unsubscribe" && req.method === "POST") return unsubscribe(req, deps, cors);
@@ -57,6 +88,85 @@ export function createHandler(deps: ApiDeps): (req: Request) => Promise<Response
 
 function publicLeader(entry: (typeof LAUNCH_ROSTER)[number]) {
   return { handle: entry.handle, leader: entry.leader, chain: entry.chain };
+}
+
+/**
+ * A trader asking to be listed.
+ *
+ * # Why this one endpoint is unauthenticated
+ *
+ * Every other route here refuses to act without a Privy token, because every
+ * other route acts on somebody's wallet. This one writes a row in a table
+ * nobody's money depends on, and requiring a sign-up before a trader can tell
+ * us they exist would lose most of them at the door.
+ *
+ * What replaces the token is a narrow shape: the body is size-capped before it
+ * is parsed, every field is validated and truncated, the id and timestamp are
+ * generated here rather than taken from the caller, and the whole endpoint has
+ * an hourly ceiling. The worst case is a table of junk rows, which is a
+ * cleanup, not an incident.
+ */
+async function apply(req: Request, deps: ApiDeps, cors: Record<string, string>): Promise<Response> {
+  const raw = await req.text();
+  if (raw.length > MAX_APPLICATION_BYTES) {
+    return json({ error: "That application is too long to be one." }, 413, cors);
+  }
+
+  const draft = safeParse(raw);
+  if (!draft) return json({ error: "Malformed body." }, 400, cors);
+
+  const result = validateApplication(draft);
+  // Field errors are returned in full: the caller is a form that can show
+  // them, and a generic 400 would make the applicant guess.
+  if (!result.ok || !result.value) return json({ errors: result.errors }, 400, cors);
+
+  if (deps.store.applicationsSince(Date.now() - 3_600_000) >= APPLICATIONS_PER_HOUR) {
+    return json(
+      { errors: ["We are taking more applications than we can store this hour. Try again shortly."] },
+      429,
+      cors,
+    );
+  }
+
+  const stored = deps.store.upsertApplication(createApplication(result.value, Date.now()));
+
+  // Only the id comes back. Echoing the stored row would let anyone confirm
+  // whether a given address has applied by submitting it and reading the reply.
+  return json({ id: stored.id, received: true }, 201, cors);
+}
+
+/** The applications inbox. Bearer-guarded, and absent when no token is set. */
+function applications(req: Request, deps: ApiDeps, cors: Record<string, string>): Response {
+  if (!deps.adminToken) return json({ error: "not found" }, 404, cors);
+
+  const presented = (req.headers.get("authorization") ?? "").replace(/^Bearer /i, "");
+  if (!timingSafeEqual(presented, deps.adminToken)) {
+    return json({ error: "unauthorized" }, 401, cors);
+  }
+
+  return json({ applications: deps.store.listApplications() }, 200, cors);
+}
+
+function safeParse(raw: string): Record<string, unknown> | null {
+  try {
+    const v: unknown = JSON.parse(raw);
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Constant-time string comparison.
+ *
+ * `===` on a secret leaks its prefix through timing. The cost of not caring is
+ * low here and the cost of caring is four lines.
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 /**

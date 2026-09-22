@@ -62,7 +62,7 @@ export function SignInButton({
 
   return (
     <Visual
-      label={label ?? (auth.configured ? "Sign in" : "Sign-in not configured")}
+      label={label ?? (auth.configured ? "sign in" : "sign-in unavailable")}
       onClick={onClick}
       disabled={disabled}
       busy={busy}
@@ -71,7 +71,7 @@ export function SignInButton({
           ? "Set VITE_PRIVY_APP_ID in app/.env.local to enable sign-in"
           : !auth.ready
             ? "Connecting to Privy…"
-            : "Sign in with Google, X, Discord or email"
+            : "Sign in with Google, X, Discord or email — a Solana wallet is created for you"
       }
       className={className}
     />

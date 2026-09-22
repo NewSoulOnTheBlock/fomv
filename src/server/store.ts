@@ -4,6 +4,7 @@ import { makePolicy, type VaultPolicy } from "../policy.js";
 import { createFeeLedger, type FeeLedger } from "../follow/fees.js";
 import type { Subscriber, SubscriberStatus } from "../follow/subscriber.js";
 import { emptyMemory, type FollowMemory } from "../follow/wallet-state.js";
+import type { ApplicationStatus, TraderApplication } from "../platform/application.js";
 
 /**
  * Durable state for the follow server.
@@ -92,6 +93,27 @@ export class Store {
       );
 
       CREATE INDEX IF NOT EXISTS subscribers_leader_status ON subscribers (leader, status);
+
+      CREATE TABLE IF NOT EXISTS applications (
+        id          TEXT PRIMARY KEY,
+        created_at  INTEGER NOT NULL,
+        status      TEXT NOT NULL,
+        handle      TEXT NOT NULL,
+        address     TEXT NOT NULL,
+        chain       TEXT NOT NULL,
+        email       TEXT,
+        telegram    TEXT,
+        twitter     TEXT,
+        book_usd    REAL,
+        strategy    TEXT NOT NULL,
+        elsewhere   TEXT NOT NULL,
+        booked_at   INTEGER,
+        note        TEXT
+      );
+      CREATE INDEX IF NOT EXISTS applications_created ON applications (created_at);
+      -- One live application per address. A trader who applies twice is
+      -- updating their answers, not queueing behind themselves.
+      CREATE UNIQUE INDEX IF NOT EXISTS applications_address ON applications (address);
     `);
   }
 
@@ -237,6 +259,132 @@ export class Store {
     });
     tx();
   }
+
+  // --- listing applications ------------------------------------------------
+
+  /**
+   * Record a trader asking to be listed.
+   *
+   * Upserts on address rather than inserting, because the common second
+   * submission is the same person correcting a typo. Two rows for one trader
+   * would mean two people chasing the same lead. The original `created_at` and
+   * any status already set by hand survive the overwrite -- re-applying must
+   * not quietly reset a lead that has already had a call.
+   */
+  upsertApplication(app: TraderApplication): TraderApplication {
+    const existing = this.applicationByAddress(app.address);
+    const row: TraderApplication = existing
+      ? { ...app, id: existing.id, createdAtMs: existing.createdAtMs, status: existing.status,
+          bookedAtMs: existing.bookedAtMs, note: existing.note }
+      : app;
+
+    this.db
+      .query(
+        `INSERT INTO applications
+           (id, created_at, status, handle, address, chain, email, telegram, twitter,
+            book_usd, strategy, elsewhere, booked_at, note)
+         VALUES ($id, $createdAt, $status, $handle, $address, $chain, $email, $telegram, $twitter,
+                 $bookUsd, $strategy, $elsewhere, $bookedAt, $note)
+         ON CONFLICT(address) DO UPDATE SET
+           handle = $handle, chain = $chain, email = $email, telegram = $telegram,
+           twitter = $twitter, book_usd = $bookUsd, strategy = $strategy, elsewhere = $elsewhere`,
+      )
+      .run({
+        $id: row.id,
+        $createdAt: row.createdAtMs,
+        $status: row.status,
+        $handle: row.handle,
+        $address: row.address,
+        $chain: row.chain,
+        $email: row.email,
+        $telegram: row.telegram,
+        $twitter: row.twitter,
+        $bookUsd: row.bookUsd,
+        $strategy: row.strategy,
+        $elsewhere: JSON.stringify(row.elsewhere),
+        $bookedAt: row.bookedAtMs,
+        $note: row.note,
+      });
+
+    return row;
+  }
+
+  applicationByAddress(address: string): TraderApplication | null {
+    const row = this.db
+      .query(`SELECT * FROM applications WHERE address = ?`)
+      .get(address) as ApplicationRow | null;
+    return row ? hydrateApplication(row) : null;
+  }
+
+  listApplications(limit = 200): TraderApplication[] {
+    const rows = this.db
+      .query(`SELECT * FROM applications ORDER BY created_at DESC LIMIT ?`)
+      .all(limit) as ApplicationRow[];
+    return rows.map(hydrateApplication);
+  }
+
+  /** Applications recorded since a moment, for the submission rate limit. */
+  applicationsSince(sinceMs: number): number {
+    const row = this.db
+      .query(`SELECT COUNT(*) AS n FROM applications WHERE created_at >= ?`)
+      .get(sinceMs) as { n: number };
+    return row.n;
+  }
+
+  setApplicationStatus(id: string, status: ApplicationStatus, note?: string | null): void {
+    this.db
+      .query(
+        `UPDATE applications
+            SET status = ?,
+                note = COALESCE(?, note),
+                booked_at = CASE WHEN ? = 'booked' AND booked_at IS NULL THEN ? ELSE booked_at END
+          WHERE id = ?`,
+      )
+      .run(status, note ?? null, status, Date.now(), id);
+  }
+}
+
+interface ApplicationRow {
+  id: string;
+  created_at: number;
+  status: string;
+  handle: string;
+  address: string;
+  chain: string;
+  email: string | null;
+  telegram: string | null;
+  twitter: string | null;
+  book_usd: number | null;
+  strategy: string;
+  elsewhere: string;
+  booked_at: number | null;
+  note: string | null;
+}
+
+function hydrateApplication(row: ApplicationRow): TraderApplication {
+  let elsewhere: string[] = [];
+  try {
+    const parsed: unknown = JSON.parse(row.elsewhere);
+    if (Array.isArray(parsed)) elsewhere = parsed.filter((x): x is string => typeof x === "string");
+  } catch {
+    // A malformed extras list is not worth losing the lead over.
+  }
+  return {
+    id: row.id,
+    createdAtMs: row.created_at,
+    status: row.status as ApplicationStatus,
+    handle: row.handle,
+    address: row.address,
+    chain: row.chain,
+    email: row.email,
+    telegram: row.telegram,
+    twitter: row.twitter,
+    bookUsd: row.book_usd,
+    strategy: row.strategy,
+    elsewhere,
+    bookedAtMs: row.booked_at,
+    note: row.note,
+  };
 }
 
 interface SubscriberRow {

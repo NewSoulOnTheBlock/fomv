@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { shortAddress } from "@/lib/format";
 
 /**
- * Copy the signed-in user's wallet address.
+ * Copy the signed-in wallet address.
  *
- * The address is shown truncated because the full 44 characters would crowd
- * the header, which means the only way to get it out is to copy it -- so the
- * control is the whole chip rather than a separate icon. A 16px target beside
- * static text is worse on touch and gives no hint that the text is the thing
- * being copied.
+ * The address is shown truncated, so copying is the only way to get the full
+ * value out -- which makes the whole chip the button rather than a 16px icon
+ * beside static text. A small target next to unclickable text gives no hint
+ * that the text is the thing being copied, and is worse on touch.
+ *
+ * Failure is shown, not assumed away. The clipboard can refuse for reasons
+ * that have nothing to do with the user (an unfocused document, a blocked
+ * permission), and a control that always flashes a tick teaches people to
+ * trust a paste that never happened.
  */
 
 type State = "idle" | "copied" | "failed";
@@ -19,11 +24,14 @@ export function CopyAddress({ address, className }: { address: string; className
   const [state, setState] = useState<State>("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Clear on unmount so a copy just before navigation cannot set state on a
-  // component that is gone.
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
+  // Cleared on unmount so a copy just before navigation cannot set state on a
+  // component that is already gone.
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
 
   const copy = useCallback(async () => {
     const ok = await writeClipboard(address);
@@ -38,18 +46,26 @@ export function CopyAddress({ address, className }: { address: string; className
   return (
     <button
       type="button"
-      className={`copy-addr${className ? ` ${className}` : ""}`}
       onClick={copy}
       aria-label={label}
       title={state === "idle" ? address : label}
-    >
-      <span className="mono">{shortAddress(address, 4, 4)}</span>
-      {state === "copied" ? (
-        <Check size={13} aria-hidden style={{ color: "var(--good)" }} />
-      ) : (
-        <Copy size={13} aria-hidden style={{ color: state === "failed" ? "var(--bad)" : undefined }} />
+      className={cn(
+        "group inline-flex h-8 items-center gap-1.5 rounded-[2px] px-2",
+        "border border-transparent hover:border-border",
+        "font-mono text-[12px] text-muted-foreground hover:text-foreground",
+        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        className,
       )}
-      {/* Announced to screen readers without taking layout space. */}
+    >
+      <span>{shortAddress(address, 4, 4)}</span>
+      {state === "copied" ? (
+        <Check className="size-3.5 shrink-0 text-[var(--band-good)]" aria-hidden />
+      ) : (
+        <Copy
+          className={cn("size-3.5 shrink-0", state === "failed" && "text-destructive")}
+          aria-hidden
+        />
+      )}
       <span className="sr-only" role="status" aria-live="polite">
         {state === "copied" ? "Copied" : state === "failed" ? "Copy failed" : ""}
       </span>
@@ -61,9 +77,9 @@ export function CopyAddress({ address, className }: { address: string; className
  * Write to the clipboard, with a fallback for non-secure contexts.
  *
  * `navigator.clipboard` is undefined outside a secure context, so on plain
- * HTTP the modern call is not merely blocked -- the property does not exist
- * and reading it throws. The deprecated `execCommand` path still works there,
- * which matters for anyone running the app on a LAN address during testing.
+ * HTTP the modern call does not return false -- reading the property throws.
+ * The deprecated `execCommand` path still works there, which matters for
+ * anyone opening the app on a LAN address while testing.
  */
 async function writeClipboard(text: string): Promise<boolean> {
   try {
@@ -72,14 +88,13 @@ async function writeClipboard(text: string): Promise<boolean> {
       return true;
     }
   } catch {
-    // Permission denied or blocked by policy: fall through and try the old way.
+    // Denied or blocked by policy: fall through and try the older path.
   }
 
   try {
     const ta = document.createElement("textarea");
     ta.value = text;
-    // Kept out of view and out of the tab order, but still selectable --
-    // display:none would make the selection fail.
+    // Off-screen but still selectable; display:none would break the selection.
     ta.setAttribute("readonly", "");
     ta.style.position = "fixed";
     ta.style.top = "-1000px";

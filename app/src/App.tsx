@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dashboard } from "./components/Dashboard";
 import { SignInButton } from "./components/SignInButton";
+import { CopyAddress } from "./components/CopyAddress";
 import { FollowPanel } from "./components/FollowPanel";
 import { useAuth } from "./lib/auth";
 import type { AppData, RosterEntry, TraderProfile } from "./lib/types";
@@ -68,9 +69,7 @@ function Header() {
         {auth.authenticated ? (
           <>
             <span className="small muted">{auth.displayName}</span>
-            {auth.walletAddress && (
-              <span className="addr small">{shortAddress(auth.walletAddress, 4, 4)}</span>
-            )}
+            {auth.walletAddress && <CopyAddress address={auth.walletAddress} />}
             <button onClick={auth.logout}>Sign out</button>
           </>
         ) : (

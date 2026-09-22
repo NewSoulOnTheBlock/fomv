@@ -227,7 +227,7 @@ export function ApplyPage() {
                   )}
                 </PanelBody>
 
-                <div className="border-t border-border p-4 flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4 border-t border-separator p-5">
                   <Button type="submit" size="lg" className="font-mono" disabled={busy}>
                     {busy ? <Loader2 className="animate-spin" /> : <Send />}
                     {busy ? "sending…" : "Submit and pick a time"}
@@ -281,12 +281,11 @@ export function ApplyPage() {
 
 function Masthead() {
   return (
-    <div className="rise step-1 border-b border-border pb-12 pt-14">
-      <div className="term-label mb-8">for traders · {LISTING_TERMS.maxRoster} seats</div>
-      <h1 className="display max-w-3xl text-[clamp(2.4rem,5vw,4rem)]">
+    <div className="rise step-1 border-b border-separator pb-12 pt-14">
+      <h1 className="max-w-3xl text-[clamp(2.3rem,4.8vw,3.75rem)] font-semibold">
         Get audited. Get listed.
         <br />
-        Get <span className="display-em">followed</span>.
+        Get <span className="text-primary">followed</span>.
       </h1>
       <p className="mt-8 max-w-2xl text-[17px] leading-[1.6] text-muted-foreground">
         Tell us which wallet to look at and pick a time. Before the call we run the same
@@ -341,18 +340,18 @@ function TermsPanel() {
   return (
     <Panel>
       <PanelHead label="what a listing is" />
-      <div className="divide-y divide-border">
+      <div className="inset-rows px-1 pb-1 [--row-inset:3.1rem] [--row-inset-end:1rem]">
         {LISTING_TERMS.includes.map((line) => (
-          <div key={line} className="flex items-start gap-2.5 px-3 py-2.5">
+          <div key={line} className="flex items-start gap-3 rounded-lg px-4 py-3">
             <Check className="size-3.5 mt-0.5 shrink-0 text-pos" aria-hidden />
             <span className="text-[13px] leading-snug text-secondary-foreground">{line}</span>
           </div>
         ))}
       </div>
-      <PanelHead label="what it is not" className="border-t" />
-      <div className="divide-y divide-border">
+      <PanelHead label="what it is not" className="border-t border-separator" />
+      <div className="inset-rows px-1 pb-1 [--row-inset:3.1rem] [--row-inset-end:1rem]">
         {LISTING_TERMS.excludes.map((line) => (
-          <div key={line} className="flex items-start gap-2.5 px-3 py-2.5">
+          <div key={line} className="flex items-start gap-3 rounded-lg px-4 py-3">
             <Minus className="size-3.5 mt-0.5 shrink-0 text-faint" aria-hidden />
             <span className="text-[13px] leading-snug text-muted-foreground">{line}</span>
           </div>
@@ -407,8 +406,8 @@ function Fieldset({
 }) {
   return (
     <fieldset className="space-y-4">
-      <legend className="term-rule mb-5 w-full">
-        <span className="display text-[20px] text-foreground">{legend}</span>
+      <legend className="mb-5 flex w-full items-center gap-3">
+        <span className="text-[17px] font-semibold text-foreground">{legend}</span>
         {hint && <span className="term-label order-last shrink-0 pl-3">{hint}</span>}
       </legend>
       {children}

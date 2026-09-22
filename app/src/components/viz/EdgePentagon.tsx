@@ -185,7 +185,7 @@ export function EdgePentagon({
           key={frac}
           d={ringPath(frac)}
           fill="none"
-          stroke="var(--grid)"
+          stroke="var(--separator)"
           strokeWidth={frac === 1 ? 1.2 : 1}
         />
       ))}
@@ -198,7 +198,7 @@ export function EdgePentagon({
           y1={cy}
           x2={g.outer.x}
           y2={g.outer.y}
-          stroke="var(--grid)"
+          stroke="var(--separator)"
           strokeWidth="1"
         />
       ))}
@@ -217,8 +217,9 @@ export function EdgePentagon({
           d={outline}
           fill="none"
           stroke={`var(--band-${band})`}
-          strokeWidth="1.6"
+          strokeWidth="1.8"
           strokeLinejoin="round"
+          strokeLinecap="round"
           filter={`url(#glow-${uid})`}
           className={animate ? "plot-line" : undefined}
           // The dash pattern has to be the path's own length or the trace

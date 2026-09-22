@@ -72,10 +72,10 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
       </a>
 
       {/* The instrument band. */}
-      <section className="rise step-1 mt-6 border-b border-border pb-12">
+      <section className="rise step-1 mt-6 border-b border-separator pb-12">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div className="min-w-0">
-            <h1 className="display text-[clamp(2.3rem,4.6vw,3.6rem)]">{entry.handle}</h1>
+            <h1 className="text-[clamp(2.1rem,4.2vw,3.25rem)] font-semibold tracking-[-0.035em]">{entry.handle}</h1>
             <FactLine
               className="mt-3"
               facts={[
@@ -94,8 +94,8 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
               its 76px numeral leaves "grade D" fifty pixels below every other
               caption, which reads as an orphan rather than as a hierarchy.
             */}
-            <div className="mt-10 grid gap-8 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-10">
-              <div className="sm:border-r sm:border-border sm:pr-10">
+            <div className="mt-10 grid gap-6 sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-stretch sm:gap-6">
+              <div className="material rounded-xl px-6 py-5">
                 <Stat
                   label="edge score"
                   value={
@@ -112,7 +112,7 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
                 />
               </div>
 
-              <div className="grid gap-x-9 gap-y-8 sm:grid-cols-3">
+              <div className="material grid gap-x-8 gap-y-7 rounded-xl px-6 py-5 sm:grid-cols-3">
                 <Stat
                   label="profit factor"
                   value={ratio(c?.profitFactor)}
@@ -170,7 +170,7 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
                   This trader is on the roster but their profile has not been computed into the
                   site data.
                 </p>
-                <pre className="overflow-x-auto border border-border bg-muted p-3 font-mono text-[11px]">
+                <pre className="material-inset overflow-x-auto rounded-lg p-4 font-mono text-[11.5px]">
                   bun run src/cli.ts profile --candidates {entry.leader}
                   {"\n"}bun run build:appdata
                 </pre>

@@ -60,14 +60,14 @@ export function WithheldGrade({
             8-of-20 look like a grade of 40. */}
         <div>
           <div
-            className="flex h-4 gap-[3px]"
+            className="flex h-2.5 gap-[3px]"
             role="img"
             aria-label={`${have} of ${required} round trips recorded`}
           >
             {Array.from({ length: segments }, (_, i) => (
               <span
                 key={i}
-                className="flex-1 rounded-[1px]"
+                className="flex-1 rounded-full"
                 style={{
                   background: i < lit ? "var(--amber)" : "var(--grid)",
                   boxShadow: i === lit - 1 ? "0 0 8px var(--amber)" : undefined,
@@ -80,7 +80,7 @@ export function WithheldGrade({
           </div>
         </div>
 
-        <div className="space-y-3.5 border-t border-border pt-5 text-[14px] leading-relaxed text-muted-foreground">
+        <div className="space-y-3.5 border-t border-separator pt-5 text-[14px] leading-relaxed text-muted-foreground">
           <p>
             Every dimension is withheld together rather than a few being scored and the rest left
             blank. A profit factor over eight trades is one good afternoon or one bad one, and a
@@ -95,7 +95,7 @@ export function WithheldGrade({
         </div>
 
         {reason && (
-          <p className="border-t border-border pt-4 font-mono text-[12px] leading-relaxed text-faint">
+          <p className="border-t border-separator pt-4 font-mono text-[12px] leading-relaxed text-faint">
             scorer: {reason}
           </p>
         )}

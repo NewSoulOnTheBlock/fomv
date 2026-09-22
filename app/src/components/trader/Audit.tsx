@@ -84,12 +84,12 @@ export function Audit({ data }: { data: TraderProfile }) {
         />
       ) : (
         <Panel>
-          <div className="divide-y divide-border">
+          <div className="inset-rows px-1 pb-1 [--row-inset:4.2rem] [--row-inset-end:1rem]">
             {ORDER.map((name) => (
               <Dimension key={name} name={name} value={p.dimensions[name]} profile={data} />
             ))}
           </div>
-          <div className="border-t border-border px-5 py-4 text-[14px] leading-relaxed text-faint">
+          <div className="border-t border-separator px-5 py-4 text-[14px] leading-relaxed text-faint">
             A hatched bar is a dimension that could not be measured from the available data. The
             Edge Score is re-weighted over the dimensions that were, so a gap lowers confidence
             rather than silently scoring zero.
@@ -98,7 +98,7 @@ export function Audit({ data }: { data: TraderProfile }) {
       )}
 
       <SectionRule index="02" aside="ten figures">The core metrics</SectionRule>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-px bg-border border border-border">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <Metric
           n="01"
           k="Realised P&L"
@@ -249,7 +249,7 @@ export function Audit({ data }: { data: TraderProfile }) {
         Where these numbers come from
       </SectionRule>
       <Panel>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y divide-border [&>*]:p-3 [&>*]:-mt-px [&>*]:-ml-px">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-7 p-5 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="swaps decoded" value={count(prov.trades)} size="sm" />
           <Stat label="window" value={span(prov.windowFromMs, prov.windowToMs)} size="sm" />
           <Stat label="tokens priced" value={count(prov.tokensPriced)} size="sm" />
@@ -268,7 +268,7 @@ export function Audit({ data }: { data: TraderProfile }) {
           />
         </div>
         {prov.caveats.length > 0 && (
-          <div className="border-t border-border p-4 space-y-2">
+          <div className="space-y-2.5 border-t border-separator p-5">
             {prov.caveats.map((cv) => (
               <Callout tone="gap" key={cv}>
                 {cv}
@@ -276,7 +276,7 @@ export function Audit({ data }: { data: TraderProfile }) {
             ))}
           </div>
         )}
-        <div className="border-t border-border px-5 py-4 text-[14px] text-faint">
+        <div className="border-t border-separator px-5 py-4 text-[14px] text-faint">
           Book value {usd(prov.equityUsd, { compact: true })} at the time of the audit. Every figure
           above is derived from on-chain history, not self-reported.
         </div>
@@ -297,14 +297,14 @@ function Dimension({
   const meta = DIMENSION_META[name];
 
   return (
-    <div className="grid items-center gap-x-5 gap-y-3 px-5 py-4 sm:grid-cols-[48px_1fr_auto]">
+    <div className="grid items-center gap-x-5 gap-y-3 rounded-lg px-4 py-4 transition-colors hover:bg-white/[0.025] sm:grid-cols-[46px_1fr_auto]">
       <span className="font-mono text-[12px] tracking-[0.12em] text-faint">{meta.code}</span>
 
       <div className="min-w-0">
         <div className="flex items-baseline justify-between gap-3 mb-1.5">
           <span className="text-[16px] font-medium">{meta.label}</span>
           <span
-            className="font-mono text-[18px] sm:hidden"
+            className="tnum text-[18px] font-semibold sm:hidden"
             style={{ color: value === null ? "var(--faint)" : bandColor(value) }}
           >
             {score(value)}
@@ -317,7 +317,7 @@ function Dimension({
       </div>
 
       <span
-        className="hidden w-14 text-right font-mono text-[24px] leading-none tabular-nums sm:block"
+        className="tnum hidden w-14 text-right text-[24px] font-semibold leading-none sm:block"
         style={{ color: value === null ? "var(--faint)" : bandColor(value) }}
       >
         {score(value)}
@@ -352,12 +352,12 @@ function SkillExposure({ data }: { data: TraderProfile }) {
 
   return (
     <Panel>
-      <div className="border-b border-border px-5 py-4 text-[15px] leading-relaxed text-muted-foreground">
+      <div className="border-b border-separator px-5 py-4 text-[15px] leading-relaxed text-muted-foreground">
         The same dollars earned on 4% position sizes and on 40% position sizes are not the same
         result. For someone mirroring this book the difference is the whole product: exposure
         decides what a drawdown feels like, whatever the return.
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y divide-border [&>*]:p-3 [&>*]:-mt-px [&>*]:-ml-px">
+      <div className="grid grid-cols-2 gap-x-8 gap-y-7 p-5 lg:grid-cols-4">
         <Stat
           label="typical position"
           value={pct(s.avgPeakWeight, 2)}
@@ -385,7 +385,7 @@ function SkillExposure({ data }: { data: TraderProfile }) {
         />
       </div>
       {s.concentrated && (
-        <div className="border-t border-border p-4">
+        <div className="border-t border-separator p-5">
           <Callout tone="warn">
             A single position accounts for {pct(s.topEpisodeShare, 0)} of all profit. That is a
             result, not yet a demonstrated process.
@@ -467,7 +467,7 @@ function Metric({
   tone?: string;
 }) {
   return (
-    <div className="bg-card p-5">
+    <div className="material rounded-xl p-5">
       {/* Reserved for two lines, so a label that wraps does not push its own
           figure out of line with the rest of the row. */}
       <div className="flex min-h-[26px] items-start justify-between gap-2">
@@ -475,7 +475,7 @@ function Metric({
         <span className="font-mono text-[10px] text-faint">{n}</span>
       </div>
       <div
-        className="mt-2.5 font-mono text-[26px] leading-none tracking-[-0.03em]"
+        className="tnum mt-2.5 text-[27px] font-semibold leading-none tracking-[-0.035em]"
         style={tone ? { color: tone } : undefined}
       >
         {v === EMPTY ? <span className="text-faint">{EMPTY}</span> : v}

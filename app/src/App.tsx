@@ -38,7 +38,7 @@ export function App() {
   }, []);
 
   return (
-    <Shell route={route} data={data}>
+    <Shell route={route}>
       {route.name === "apply" ? (
         <ApplyPage />
       ) : error ? (

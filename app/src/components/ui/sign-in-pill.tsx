@@ -47,10 +47,10 @@ export function SignInPill({ label, onClick, disabled, busy, title, className }:
       aria-label={label}
       aria-busy={busy}
       className={cn(
-        "group inline-flex h-9 min-w-0 max-w-full items-center justify-center gap-2 rounded-[2px] px-3.5",
-        "border border-primary bg-primary text-primary-foreground",
-        "whitespace-nowrap font-mono text-[13px] font-semibold tracking-wide",
-        "transition-[filter,background,border-color] hover:brightness-110",
+        "group inline-flex h-10 min-w-0 max-w-full items-center justify-center gap-2 rounded-full px-5",
+        "border border-primary bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]",
+        "whitespace-nowrap text-[14px] font-semibold",
+        "transition-all hover:brightness-110 active:scale-[0.98]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         "disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent",
         "disabled:text-muted-foreground disabled:brightness-100",
@@ -59,12 +59,7 @@ export function SignInPill({ label, onClick, disabled, busy, title, className }:
     >
       <LogIn className="size-4 shrink-0" aria-hidden />
       <span className="truncate">{busy ? "opening" : label}</span>
-      {!disabled && (
-        <span
-          aria-hidden
-          className={cn("w-[7px] h-[13px] bg-current/80", busy ? "opacity-40" : "term-blink")}
-        />
-      )}
+
     </button>
   );
 }

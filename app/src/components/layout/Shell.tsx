@@ -1,26 +1,24 @@
 import { type ReactNode } from "react";
 
-import { DEFAULT_FEE_TERMS } from "@engine/follow/fees.js";
-import { LISTING_TERMS } from "@engine/platform/listing.js";
 import { AccountChip } from "@/components/AccountChip";
 import { cn } from "@/lib/utils";
-import { bps, relative } from "@/lib/format";
 import { href, type Route } from "@/lib/router";
-import type { AppData } from "@/lib/types";
 
 /**
  * The frame every page sits in.
  *
- * # The readout strip
+ * # What used to be here
  *
- * The hairline bar above the header is the one flourish in the product, and it
- * earns its place by being true: every figure on it is read from the data file
- * rather than typed into the markup. It answers, before the page has made any
- * argument, the four questions a visitor would otherwise have to hunt for --
- * which network, how many traders, what it costs, and who holds the funds.
+ * A hairline readout strip sat above the header restating the network, the
+ * roster count, the fee and the custody model on every route. Every figure on
+ * it was true and read from the data file, and it was still clutter: three of
+ * the four are answered by the hero's own figures a screen-height below, and a
+ * bar of small grey type above the masthead is the first thing a visitor's eye
+ * has to learn to skip.
  *
- * `CUSTODY SELF` is the most consequential string on the site and it is
- * deliberate that it appears above the fold on every route.
+ * Nothing was lost by removing it. `custody: self` -- the one genuinely
+ * load-bearing claim -- is still above the fold, set at 30px in the hero band
+ * where it can actually be read.
  */
 
 const NAV: { label: string; path: string; match: Route["name"][] }[] = [
@@ -28,18 +26,9 @@ const NAV: { label: string; path: string; match: Route["name"][] }[] = [
   { label: "Get listed", path: "/apply", match: ["apply"] },
 ];
 
-export function Shell({
-  route,
-  data,
-  children,
-}: {
-  route: Route;
-  data: AppData | null;
-  children: ReactNode;
-}) {
+export function Shell({ route, children }: { route: Route; children: ReactNode }) {
   return (
-    <div className="grain vignette flex min-h-screen flex-col">
-      <ReadoutStrip data={data} />
+    <div className="flex min-h-screen flex-col">
       <Header route={route} />
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-5 pb-24 sm:px-8">{children}</main>
       <Footer />
@@ -47,38 +36,13 @@ export function Shell({
   );
 }
 
-function ReadoutStrip({ data }: { data: AppData | null }) {
-  const cells: [string, ReactNode][] = [
-    ["net", data?.platform.cluster ?? "—"],
-    ["roster", data ? `${data.roster.length}/${LISTING_TERMS.maxRoster}` : "—"],
-    ["fee", `${bps(DEFAULT_FEE_TERMS.tradeFeeBps)} per trade`],
-    ["custody", <span className="text-pos">self</span>],
-  ];
-
-  return (
-    <div className="border-b border-border bg-[#050507]">
-      <div className="mx-auto flex h-9 max-w-[1200px] items-center gap-6 overflow-x-auto px-5 sm:px-8">
-        {cells.map(([k, v]) => (
-          <span key={k} className="flex shrink-0 items-baseline gap-2">
-            <span className="term-label">{k}</span>
-            <span className="font-mono text-[12px] text-secondary-foreground">{v}</span>
-          </span>
-        ))}
-        <span className="term-label ml-auto hidden shrink-0 sm:block">
-          data {data ? relative(data.generatedAtMs) : "—"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function Header({ route }: { route: Route }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="term-grid pointer-events-none absolute inset-0 opacity-50" aria-hidden />
+    <header className="sticky top-0 z-30 border-b border-separator bg-background/60 backdrop-blur-2xl">
+      
 
-      <div className="relative mx-auto flex h-[68px] max-w-[1200px] items-center gap-4 px-5 sm:gap-10 sm:px-8">
-        <a href={href("/")} className="group flex min-w-0 shrink items-center gap-3">
+      <div className="relative mx-auto flex h-[68px] max-w-[1200px] items-center gap-2 px-5 sm:gap-10 sm:px-8">
+        <a href={href("/")} className="group flex shrink-0 items-center gap-3">
           <img
             src="/mark-72.png"
             srcSet="/mark-72.png 1x, /mark-144.png 2x"
@@ -89,14 +53,7 @@ function Header({ route }: { route: Route }) {
             className="block size-[30px] shrink-0"
           />
           <span className="flex flex-col leading-none">
-            {/* Bodoni's thins vanish at small sizes on a dark ground, so the
-                wordmark is set heavy where body copy is set regular. */}
-            <span
-              className="display text-[27px] leading-none tracking-[0.01em]"
-              // `font-variation-settings` overrides `font-weight` outright, so the
-              // weight has to travel on the axis or it silently stays at 400.
-              style={{ fontVariationSettings: '"opsz" 96, "wght" 700' }}
-            >
+            <span className="text-[21px] font-bold leading-none tracking-[-0.03em]">
               FOM<span className="text-primary">V</span>
             </span>
             <span className="term-label mt-1 hidden md:block">fear of missing vault</span>
@@ -112,11 +69,12 @@ function Header({ route }: { route: Route }) {
                 href={href(item.path)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "whitespace-nowrap px-2 py-1 font-mono text-[13px] tracking-wide transition-colors sm:px-3",
-                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                  "whitespace-nowrap rounded-full px-3 py-1.5 text-[13.5px] font-medium transition-all sm:px-4 sm:text-[14px]",
+                  active
+                    ? "bg-white/[0.08] text-foreground shadow-[inset_0_1px_0_var(--highlight)]"
+                    : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
                 )}
               >
-                {active && <span className="mr-1.5 text-primary">▸</span>}
                 {item.label}
               </a>
             );
@@ -133,10 +91,10 @@ function Header({ route }: { route: Route }) {
 
 function Footer() {
   return (
-    <footer className="engraved mt-auto">
+    <footer className="mt-auto border-t border-separator">
       <div className="mx-auto grid max-w-[1200px] gap-8 px-5 py-12 sm:px-8 md:grid-cols-[1fr_auto] md:items-start">
         <div className="max-w-2xl space-y-4">
-          <div className="display text-[28px]">FOMV</div>
+          <div className="text-[19px] font-bold tracking-[-0.03em]">FOMV</div>
           <p className="text-[13px] leading-relaxed text-faint">
             Copy-trading replicates another account's transactions at the operator's sole
             direction. Nothing here is investment advice, and a published grade is a measurement of
@@ -144,10 +102,15 @@ function Footer() {
             guardrails printed on each trader's page; it does not permit transfers to any other
             address, and you can withdraw it at any time.
           </p>
-          <div className="flex flex-wrap gap-x-7 gap-y-1 font-mono text-[11px] uppercase tracking-[0.18em] text-faint">
-            <span>non-custodial</span>
-            <span>solana only</span>
-            <span>no deposit</span>
+          <div className="flex flex-wrap gap-x-2.5 gap-y-2">
+            {["non-custodial", "solana only", "no deposit"].map((t) => (
+              <span
+                key={t}
+                className="rounded-full border border-separator bg-white/[0.03] px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint"
+              >
+                {t}
+              </span>
+            ))}
           </div>
         </div>
         <nav className="flex gap-x-7 gap-y-2.5 text-[13px] md:flex-col" aria-label="Footer">

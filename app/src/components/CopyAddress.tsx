@@ -67,8 +67,8 @@ export function CopyAddress({
       aria-label={label}
       title={state === "idle" ? address : label}
       className={cn(
-        "group inline-flex h-9 items-center gap-2 rounded-[2px] px-2.5",
-        "border border-transparent hover:border-border",
+        "group inline-flex h-9 items-center gap-2 rounded-full border border-transparent bg-white/[0.04] px-3.5",
+        "hover:bg-white/[0.08]",
         "font-mono text-[13px] text-muted-foreground hover:text-foreground",
         "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         className,

@@ -57,7 +57,7 @@ export function RosterPage({ data }: { data: AppData }) {
 
   return (
     <div>
-      <Masthead count={data.roster.length} />
+      <Masthead />
 
       <SectionRule index="01" aside={`${data.roster.length} of ${LISTING_TERMS.maxRoster} seats`}>
         The roster
@@ -88,7 +88,7 @@ export function RosterPage({ data }: { data: AppData }) {
   );
 }
 
-function Masthead({ count: listed }: { count: number }) {
+function Masthead() {
   return (
     <section className="border-b border-border pb-16 pt-14 md:pt-20">
       {/*
@@ -98,12 +98,8 @@ function Masthead({ count: listed }: { count: number }) {
         the width it breaks where it was written to break.
       */}
       <div className="rise step-1">
-        <div className="term-label mb-8">
-          copy-trading · solana · {listed} graded trader{listed === 1 ? "" : "s"}
-        </div>
-
-        <h1 className="display max-w-[17ch] text-[clamp(2.6rem,5.6vw,4.4rem)]">
-          Follow a trader who has been <span className="display-em">measured</span>.
+        <h1 className="max-w-[18ch] text-[clamp(2.5rem,5.4vw,4.25rem)] font-semibold">
+          Follow a trader who has been <span className="text-primary">measured</span>.
         </h1>
       </div>
 
@@ -138,7 +134,7 @@ function Masthead({ count: listed }: { count: number }) {
 
       {/* The three numbers that answer "what does this cost me", given a band
           of their own rather than squeezed beside the copy. */}
-      <div className="rise step-4 term-divided mt-12 grid border-t border-border sm:grid-cols-3">
+      <div className="rise step-4 material term-divided mt-14 grid rounded-xl sm:grid-cols-3">
         <Headline value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} label="per mirrored trade" />
         <Headline value="$0" label="to start or stop" />
         <Headline value="self" label="custody, always" tone="var(--pos)" />
@@ -149,8 +145,8 @@ function Masthead({ count: listed }: { count: number }) {
 
 function Headline({ value, label, tone }: { value: string; label: string; tone?: string }) {
   return (
-    <div className="py-7 pr-6 first:pl-0 sm:pl-7">
-      <div className="font-mono text-[28px] leading-none tracking-[-0.02em]" style={tone ? { color: tone } : undefined}>
+    <div className="px-6 py-6">
+      <div className="tnum text-[30px] font-semibold leading-none tracking-[-0.035em]" style={tone ? { color: tone } : undefined}>
         {value}
       </div>
       <div className="term-label mt-2.5">{label}</div>
@@ -184,12 +180,12 @@ function TraderRecord({
   const buckets = c?.consistency.bucketPnlUsd ?? [];
 
   return (
-    <Panel className="group rise step-2 relative overflow-hidden transition-colors hover:border-[#2c2c36]">
+    <Panel className="group rise step-2 pressable relative overflow-hidden hover:border-white/20 hover:shadow-[inset_0_1px_0_var(--highlight),var(--shadow-lift)]">
       {/* One amber rule that grows down the leading edge. The only hover
           flourish in the product, on the only thing that is a link. */}
       <span
         aria-hidden
-        className="absolute inset-y-0 left-0 w-px origin-top scale-y-0 bg-primary transition-transform duration-500 ease-out group-hover:scale-y-100"
+        className="absolute inset-y-0 left-0 w-[2px] origin-top scale-y-0 rounded-full bg-primary transition-transform duration-500 ease-out group-hover:scale-y-100"
       />
       <a href={href(`/t/${entry.leader}`)} className="block focus-visible:outline-none">
         <div className="grid gap-6 p-5 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center">
@@ -204,7 +200,7 @@ function TraderRecord({
               <EdgeGlyph dimensions={dims} score={edge} size={58} />
             )}
             <div className="min-w-0">
-              <div className="display truncate text-[clamp(1.6rem,2.5vw,2.1rem)]">{entry.handle}</div>
+              <div className="truncate text-[clamp(1.45rem,2.2vw,1.85rem)] font-semibold tracking-[-0.03em]">{entry.handle}</div>
               <FactLine
                 className="mt-1.5"
                 facts={[
@@ -246,7 +242,7 @@ function TraderRecord({
       </a>
 
       {entry.note && (
-        <p className="border-t border-border px-6 py-3.5 text-[13px] leading-relaxed text-faint">
+        <p className="border-t border-separator px-5 py-3.5 text-[13px] leading-relaxed text-faint">
           {entry.note}
         </p>
       )}
@@ -268,7 +264,7 @@ function Cell({
   return (
     <div className="min-w-[104px]">
       <div className="term-label">{label}</div>
-      <div className="mt-2 font-mono text-[23px] leading-none tracking-[-0.02em]" style={tone ? { color: tone } : undefined}>
+      <div className="tnum mt-2 text-[23px] font-semibold leading-none tracking-[-0.035em]" style={tone ? { color: tone } : undefined}>
         {value}
       </div>
       {sub !== undefined && <div className="mt-2 text-[12px] text-faint">{sub}</div>}
@@ -303,11 +299,11 @@ function HowItWorks() {
   return (
     <>
       <SectionRule index="02">How following works</SectionRule>
-      <div className="grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map(([n, title, body]) => (
-          <div key={n} className="bg-card p-6">
-            <div className="font-mono text-[13px] text-primary">{n}</div>
-            <h3 className="display mt-3 text-[23px]">{title}</h3>
+          <div key={n} className="material rounded-xl p-6">
+            <div className="inline-flex size-7 items-center justify-center rounded-full bg-primary/12 font-mono text-[11px] text-primary">{n}</div>
+            <h3 className="mt-4 text-[19px] font-semibold">{title}</h3>
             <p className="mt-2.5 text-[14px] leading-relaxed text-muted-foreground">{body}</p>
           </div>
         ))}
@@ -326,8 +322,8 @@ function ListingPitch({ listed }: { listed: number }) {
       <Panel>
         <div className="grid items-center gap-8 p-8 md:grid-cols-[1fr_auto]">
           <div className="max-w-2xl">
-            <h3 className="display text-[clamp(1.8rem,3.2vw,2.5rem)]">
-              Get audited. Get listed. Get <span className="display-em">followed</span>.
+            <h3 className="text-[clamp(1.6rem,2.8vw,2.2rem)] font-semibold">
+              Get audited. Get listed. Get <span className="text-primary">followed</span>.
             </h3>
             <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
               We run the same five-dimension audit on your wallet that you see above, publish it

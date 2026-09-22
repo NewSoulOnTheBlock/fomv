@@ -64,8 +64,8 @@ export function MirrorDiagram({ className }: { className?: string }) {
       </defs>
 
       {/* Lanes. */}
-      <path d={inPath} stroke="var(--rule)" strokeWidth="1" fill="none" markerEnd={`url(#arrow-${uid})`} />
-      <path d={outPath} stroke="var(--rule)" strokeWidth="1" fill="none" markerEnd={`url(#arrow-${uid})`} />
+      <path d={inPath} stroke="var(--separator)" strokeWidth="1.2" fill="none" markerEnd={`url(#arrow-${uid})`} />
+      <path d={outPath} stroke="var(--separator)" strokeWidth="1.2" fill="none" markerEnd={`url(#arrow-${uid})`} />
 
       {/* Trades in flight. Staggered, so the lane is never empty and never busy. */}
       {[0, 1.9, 3.4].map((delay, i) => (
@@ -102,18 +102,20 @@ export function MirrorDiagram({ className }: { className?: string }) {
           y={gate.y}
           width={gate.w}
           height={gate.h}
-          fill="var(--card)"
+          rx="14"
+          fill="rgba(255,176,46,0.06)"
           stroke="var(--amber)"
           strokeWidth="1"
-          opacity="0.95"
+          strokeOpacity="0.55"
         />
         <text
           x={gate.x + gate.w / 2}
           y={gate.y + 20}
           textAnchor="middle"
           fontFamily="var(--font-mono)"
-          fontSize="9"
-          letterSpacing="0.16em"
+          fontSize="9.5"
+          letterSpacing="0.14em"
+          fontWeight="600"
           fill="var(--amber)"
         >
           GUARDRAILS
@@ -138,9 +140,9 @@ export function MirrorDiagram({ className }: { className?: string }) {
       <g>
         <path
           d={`M ${wallet.x + wallet.w / 2} ${wallet.y + wallet.h} q 0 34 -40 34 L ${gate.x + gate.w + 26} ${laneY + 60}`}
-          stroke="var(--rule)"
+          stroke="var(--separator)"
           strokeWidth="1"
-          strokeDasharray="3 4"
+          strokeDasharray="3 5"
           fill="none"
         />
         <text
@@ -183,10 +185,11 @@ function Box({
         y={y}
         width={w}
         height={h}
-        fill="var(--card)"
-        stroke={accent ? "var(--pos)" : "var(--rule)"}
+        rx="14"
+        fill={accent ? "rgba(50,215,75,0.06)" : "rgba(255,255,255,0.045)"}
+        stroke={accent ? "var(--pos)" : "var(--separator)"}
         strokeWidth="1"
-        opacity={accent ? 0.9 : 1}
+        strokeOpacity={accent ? 0.5 : 1}
       />
       <text
         x={x + 12}

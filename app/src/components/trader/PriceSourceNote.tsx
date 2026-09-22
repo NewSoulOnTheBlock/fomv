@@ -79,7 +79,7 @@ export function PriceSourceNote({
           Measured against <span className="text-pos">the market</span>, not against their own
           fills.
         </p>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="material-inset grid grid-cols-3 gap-4 rounded-lg p-4">
           <Figure label="resolution" value={readable(source.resolution)} />
           <Figure label="candles" value={source.candles.toLocaleString()} />
           <Figure
@@ -102,7 +102,7 @@ function Figure({ label, value, sub }: { label: string; value: string; sub?: str
   return (
     <div>
       <div className="term-label">{label}</div>
-      <div className="mt-2 font-mono text-[21px] leading-none">{value}</div>
+      <div className="tnum mt-2 text-[21px] font-semibold leading-none">{value}</div>
       {sub && <div className="mt-2 text-[12px] text-faint">{sub}</div>}
     </div>
   );

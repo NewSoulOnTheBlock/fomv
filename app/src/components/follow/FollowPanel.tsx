@@ -113,7 +113,7 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
       )}
 
       {error && (
-        <div className="border-t border-border p-4">
+        <div className="border-t border-separator p-5">
           <Callout tone="warn">{error}</Callout>
         </div>
       )}
@@ -159,15 +159,15 @@ function NotFollowing({
 }) {
   return (
     <>
-      <div className="px-4 pt-4">
+      <div className="px-5 pt-5">
         <p className="text-[14px] leading-relaxed text-muted-foreground">
           Authorise FOMV to mirror this trader's swaps into your own wallet.
         </p>
       </div>
 
-      <div className="p-4">
+      <div className="p-5">
         <div className="term-label mb-2">what you are granting</div>
-        <div className="border border-border divide-y divide-border">
+        <div className="material-inset inset-rows overflow-hidden rounded-lg [--row-inset:2.6rem]">
           <Permission allowed>Sign swaps on your wallet, inside the published guardrails</Permission>
           <Permission>Move your funds to any other address</Permission>
           <Permission>See or export your private key</Permission>
@@ -175,7 +175,7 @@ function NotFollowing({
         </div>
       </div>
 
-      <div className="border-t border-border p-4">
+      <div className="border-t border-separator p-5">
         <div className="term-label mb-1">what it costs</div>
         <LeaderRow label="Fee per mirrored trade" value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} />
         <LeaderRow label={`— of which to ${vault.handle}`} value={splitLabel()} />
@@ -187,9 +187,9 @@ function NotFollowing({
         <LeaderRow label="Ceiling on that fee" value={bps(MAX_TRADE_FEE_BPS)} />
       </div>
 
-      <div className="border-t border-border p-4 space-y-3">
+      <div className="space-y-4 border-t border-separator p-5">
         <Button
-          className="w-full font-mono"
+          className="w-full"
           size="lg"
           onClick={onDelegate}
           disabled={busy || !canDelegate}
@@ -232,7 +232,7 @@ function Following({
 }) {
   return (
     <>
-      <div className="p-4">
+      <div className="p-5">
         <Callout tone="note">
           Following <strong className="font-semibold">{vault.handle}</strong>. New swaps are
           mirrored into your wallet, sized by their portfolio weight rather than their dollar
@@ -240,15 +240,15 @@ function Following({
         </Callout>
       </div>
 
-      <div className="border-t border-border p-4">
+      <div className="border-t border-separator p-5">
         <LeaderRow label="Your wallet" value={<CopyAddress address={address} lead={6} tail={6} />} />
         <LeaderRow label="Max position in one token" value={bps(1500)} />
         <LeaderRow label="Fee per mirrored trade" value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} />
         <LeaderRow label={`— of which to ${vault.handle}`} value={splitLabel()} />
       </div>
 
-      <div className="border-t border-border p-4 space-y-3">
-        <Button variant="outline" className="w-full font-mono" onClick={onRevoke} disabled={busy}>
+      <div className="space-y-4 border-t border-separator p-5">
+        <Button variant="outline" className="w-full" onClick={onRevoke} disabled={busy}>
           {busy ? "revoking…" : "Stop following"}
         </Button>
         <p className="text-[13px] leading-relaxed text-faint">
@@ -263,7 +263,7 @@ function Following({
 /** One line of the permission list: the capability, and whether it is granted. */
 function Permission({ allowed = false, children }: { allowed?: boolean; children: ReactNode }) {
   return (
-    <div className="flex items-start gap-2.5 px-3 py-2">
+    <div className="flex items-start gap-3 px-4 py-3">
       {allowed ? (
         <Check className="size-3.5 mt-0.5 shrink-0 text-pos" aria-hidden />
       ) : (

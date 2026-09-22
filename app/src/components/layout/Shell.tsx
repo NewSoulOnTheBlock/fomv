@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 
 import { AccountChip } from "@/components/AccountChip";
+import { FooterLinks } from "@/components/layout/FooterLinks";
 import { Ticker } from "@/components/layout/Ticker";
 import { cn } from "@/lib/utils";
 import { href, type Route } from "@/lib/router";
@@ -126,6 +127,7 @@ function Footer() {
       <div className="mx-auto grid max-w-[1200px] gap-8 px-5 py-12 sm:px-8 md:grid-cols-[1fr_auto] md:items-start">
         <div className="max-w-2xl space-y-4">
           <div className="text-[19px] font-bold tracking-[-0.03em]">FOMV</div>
+          <FooterLinks />
           <p className="text-[13px] leading-relaxed text-faint">
             Copy-trading replicates another account's transactions at the operator's sole
             direction. Nothing here is investment advice, and a published grade is a measurement of

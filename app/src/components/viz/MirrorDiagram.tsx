@@ -72,7 +72,7 @@ export function MirrorDiagram({ className }: { className?: string }) {
         <circle
           key={`in-${i}`}
           r="3"
-          fill="var(--amber)"
+          fill="var(--brand)"
           filter={`url(#soft-${uid})`}
           style={{
             offsetPath: `path("${inPath}")`,
@@ -95,7 +95,7 @@ export function MirrorDiagram({ className }: { className?: string }) {
 
       <Box x={leader.x} y={leader.y} w={leader.w} h={leader.h} label="graded trader" value="their swap" />
 
-      {/* The gate. Taller and amber-edged: it is the only thing here that decides. */}
+      {/* The gate. Taller and lit: it is the only thing here that decides. */}
       <g>
         <rect
           x={gate.x}
@@ -103,8 +103,8 @@ export function MirrorDiagram({ className }: { className?: string }) {
           width={gate.w}
           height={gate.h}
           rx="14"
-          fill="rgba(255,176,46,0.06)"
-          stroke="var(--amber)"
+          fill="rgba(153,69,255,0.09)"
+          stroke="var(--brand)"
           strokeWidth="1"
           strokeOpacity="0.55"
         />
@@ -116,7 +116,7 @@ export function MirrorDiagram({ className }: { className?: string }) {
           fontSize="9.5"
           letterSpacing="0.14em"
           fontWeight="600"
-          fill="var(--amber)"
+          fill="var(--brand)"
         >
           GUARDRAILS
         </text>

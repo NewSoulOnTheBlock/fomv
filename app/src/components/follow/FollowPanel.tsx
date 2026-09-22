@@ -27,7 +27,7 @@ import type { RosterEntry } from "@/lib/types";
  * make "cannot move your funds" a claim rather than an omission -- and it is
  * the true and load-bearing fact about this product.
  *
- * Nothing on this panel is styled to persuade. The action is the only amber
+ * Nothing on this panel is styled to persuade. The action is the only lit
  * element; every guarantee is stated in the same weight as every limitation,
  * including the one that is worse for the user.
  */

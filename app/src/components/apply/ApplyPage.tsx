@@ -285,7 +285,7 @@ function Masthead() {
       <h1 className="max-w-3xl text-[clamp(2.3rem,4.8vw,3.75rem)] font-semibold">
         Get audited. Get listed.
         <br />
-        Get <span className="text-primary">followed</span>.
+        Get <span className="text-gradient">followed</span>.
       </h1>
       <p className="mt-8 max-w-2xl text-[17px] leading-[1.6] text-muted-foreground">
         Tell us which wallet to look at and pick a time. Before the call we run the same

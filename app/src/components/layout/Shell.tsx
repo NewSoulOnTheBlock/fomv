@@ -29,6 +29,14 @@ const NAV: { label: string; path: string; match: Route["name"][] }[] = [
 export function Shell({ route, children }: { route: Route; children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Fixed, behind everything, and inert. See `.aurora` in styles.css. */}
+      <div className="aurora" aria-hidden>
+        <span className="a1" />
+        <span className="a2" />
+        <span className="a3" />
+      </div>
+      <div className="dither" aria-hidden />
+
       <Header route={route} />
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-5 pb-24 sm:px-8">{children}</main>
       <Footer />

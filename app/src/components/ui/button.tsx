@@ -8,14 +8,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] hover:brightness-108",
+        // The primary action is a dark capsule with a turning gradient edge:
+        // the light draws the eye where a flat fill would only sit there.
+        default: "rim text-foreground font-semibold hover:text-white",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
         outline:
           "border border-white/12 bg-white/[0.045] shadow-[inset_0_1px_0_var(--highlight)] hover:bg-white/[0.08]",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        /** A filled violet, for a second action that must not compete with the rim. */
+        solid: "bg-primary text-primary-foreground hover:brightness-110",
         ghost: "rounded-full hover:bg-white/[0.07]",
         link: "text-primary underline-offset-4 hover:underline",
       },

@@ -99,7 +99,7 @@ function Masthead() {
       */}
       <div className="rise step-1">
         <h1 className="max-w-[18ch] text-[clamp(2.5rem,5.4vw,4.25rem)] font-semibold">
-          Follow a trader who has been <span className="text-primary">measured</span>.
+          Follow a trader who has been <span className="text-gradient">measured</span>.
         </h1>
       </div>
 
@@ -124,7 +124,7 @@ function Masthead() {
           <div
             className="pointer-events-none absolute -inset-y-16 inset-x-0 -z-10 opacity-70"
             style={{
-              background: "radial-gradient(60% 60% at 50% 50%, var(--amber-glow), transparent 70%)",
+              background: "radial-gradient(60% 60% at 50% 50%, var(--brand-glow), transparent 70%)",
             }}
             aria-hidden
           />
@@ -181,11 +181,12 @@ function TraderRecord({
 
   return (
     <Panel className="group rise step-2 pressable relative overflow-hidden hover:border-white/20 hover:shadow-[inset_0_1px_0_var(--highlight),var(--shadow-lift)]">
-      {/* One amber rule that grows down the leading edge. The only hover
+      {/* One lit rule that grows down the leading edge. The only hover
           flourish in the product, on the only thing that is a link. */}
       <span
         aria-hidden
-        className="absolute inset-y-0 left-0 w-[2px] origin-top scale-y-0 rounded-full bg-primary transition-transform duration-500 ease-out group-hover:scale-y-100"
+        className="absolute inset-y-0 left-0 w-[2px] origin-top scale-y-0 rounded-full transition-transform duration-500 ease-out group-hover:scale-y-100"
+        style={{ background: "var(--brand-gradient)" }}
       />
       <a href={href(`/t/${entry.leader}`)} className="block focus-visible:outline-none">
         <div className="grid gap-6 p-5 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center">
@@ -323,7 +324,7 @@ function ListingPitch({ listed }: { listed: number }) {
         <div className="grid items-center gap-8 p-8 md:grid-cols-[1fr_auto]">
           <div className="max-w-2xl">
             <h3 className="text-[clamp(1.6rem,2.8vw,2.2rem)] font-semibold">
-              Get audited. Get listed. Get <span className="text-primary">followed</span>.
+              Get audited. Get listed. Get <span className="text-gradient">followed</span>.
             </h3>
             <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground">
               We run the same five-dimension audit on your wallet that you see above, publish it

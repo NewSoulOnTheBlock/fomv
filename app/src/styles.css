@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 /*
- * FOMV — layered materials, amber accent.
+ * FOMV — layered materials, Solana accent.
  *
  * # What this surface is trying to be
  *
@@ -20,9 +20,21 @@
  *
  * # The colour rule, and it is still absolute
  *
- * Amber is the interface: controls, marks, the thing you can act on. Green and
- * red belong to signed quantities and nothing else. A statistic is never
+ * Violet is the interface: controls, marks, the thing you can act on. Green
+ * and red belong to signed quantities and nothing else. A statistic is never
  * coloured for emphasis and a button is never coloured like a profit.
+ *
+ * # Why there is no orange anywhere
+ *
+ * The score bands used to run green through amber to red, which is the
+ * conventional scale and wrong twice over here. It collided with the accent
+ * while that was amber, and -- worse -- it says a middling score is a
+ * *warning*. A 54 is not a hazard. It is unremarkable.
+ *
+ * So the scale runs green through a cool blue to red: good, middling, bad,
+ * with the middle reading as neither rather than as an alarm. Nothing on the
+ * page is orange, and nothing has to be, because caution was never the thing
+ * a mid score meant.
  */
 
 @custom-variant dark (&:is(.dark *));
@@ -36,8 +48,8 @@
   --card-foreground: #f2f2f4;
   --popover: #1a1a1e;
   --popover-foreground: #f2f2f4;
-  --primary: #ffb02e;
-  --primary-foreground: #1a1204;
+  --primary: #9945ff;
+  --primary-foreground: #ffffff;
   --secondary: #1d1d21;
   --secondary-foreground: #d5d5d9;
   --muted: #17171a;
@@ -47,7 +59,7 @@
   --destructive: #ff5f57;
   --border: rgba(255, 255, 255, 0.09);
   --input: rgba(255, 255, 255, 0.11);
-  --ring: #ffb02e;
+  --ring: #9945ff;
 
   /*
    * Fourteen, and everything else derives from it.
@@ -66,18 +78,21 @@
   --highlight: rgba(255, 255, 255, 0.08);
   --separator: rgba(255, 255, 255, 0.07);
 
-  --amber: #ffb02e;
-  --amber-soft: rgba(255, 176, 46, 0.14);
-  --amber-glow: rgba(255, 176, 46, 0.3);
+  /* Solana's two brand ends, and the blend between them. */
+  --brand: #9945ff;
+  --brand-2: #14f195;
+  --brand-soft: rgba(153, 69, 255, 0.14);
+  --brand-glow: rgba(153, 69, 255, 0.38);
+  --brand-gradient: linear-gradient(115deg, #9945ff 0%, #7a5cff 40%, #14f195 100%);
   --faint: #6b6b73;
-  --pos: #32d74b;
+  --pos: #14f195;
   --neg: #ff5f57;
-  --warn: #f0b429;
+  --warn: #7fb0ff;
 
   /* Score bands. `none` is "not measured", never "measured as bad". */
-  --band-good: #32d74b;
-  --band-ok: #a9dc4a;
-  --band-warn: #eab308;
+  --band-good: #14f195;
+  --band-ok: #58ddb0;
+  --band-warn: #59b0f7;
   --band-bad: #ff5f57;
   --band-none: #4a4a52;
 
@@ -105,7 +120,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --color-amber: var(--amber);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
   --color-faint: var(--faint);
   --color-pos: var(--pos);
   --color-neg: var(--neg);
@@ -130,16 +146,7 @@
 
   html {
     scroll-padding-top: 7rem;
-    /*
-     * Two soft lights rather than a flat fill. A single colour across a wide
-     * dark screen bands visibly and reads as a surface with nothing on it;
-     * these give the page a direction to be lit from.
-     */
-    background:
-      radial-gradient(72rem 40rem at 12% -10%, rgba(255, 176, 46, 0.07), transparent 60%),
-      radial-gradient(60rem 40rem at 95% 0%, rgba(120, 140, 255, 0.05), transparent 55%),
-      var(--background);
-    background-attachment: fixed;
+    background: var(--background);
   }
 
   body {
@@ -172,8 +179,8 @@
   }
 
   ::selection {
-    background: var(--amber);
-    color: #1a1204;
+    background: var(--brand);
+    color: #fff;
   }
 
   ::-webkit-scrollbar {
@@ -279,9 +286,189 @@
     }
   }
 
-  /* Amber bloom on the one figure a panel exists to show. */
+  /*
+   * A lit gradient edge that turns.
+   *
+   * # How the border itself becomes a gradient
+   *
+   * Two backgrounds in one box: the fill painted to the padding box, the
+   * gradient painted to the border box. The one-pixel border *is* the
+   * gradient, so it follows the radius exactly. The usual alternative -- an
+   * absolutely positioned pseudo-element behind a transparent border -- mitres
+   * badly on a rounded corner and has to be re-tuned for every radius.
+   *
+   * # How it turns
+   *
+   * A conic gradient read from an angle that is itself animated. That needs
+   * `@property`, because an unregistered custom property is a string as far as
+   * the animation engine is concerned and interpolates in one jump. Registered
+   * as an `<angle>`, it tweens, and the light appears to travel around the
+   * edge.
+   *
+   * Where `@property` is unsupported the declaration is ignored, the angle
+   * stays at its initial value and the rim is a handsome static gradient. That
+   * is the correct failure: the control still reads as the primary action.
+   *
+   * # The aura
+   *
+   * The same conic, blurred, sitting two pixels outside and painted behind the
+   * element. It is what makes the edge look *lit* rather than merely coloured
+   * -- a border glows because light is landing on what is around it, and a box
+   * shadow alone cannot carry a hue that changes as it goes round.
+   */
+  .rim {
+    position: relative;
+    isolation: isolate;
+    border: 1px solid transparent;
+    background-image:
+      linear-gradient(var(--rim-fill, #17122a), var(--rim-fill, #17122a)),
+      conic-gradient(
+        from var(--rim-angle),
+        #9945ff 0%,
+        #6f7bff 22%,
+        #14f195 45%,
+        #00d1ff 68%,
+        #9945ff 100%
+      );
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    animation: rim-spin 5.5s linear infinite;
+  }
+
+  .rim::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -2px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from var(--rim-angle),
+      #9945ff 0%,
+      #6f7bff 22%,
+      #14f195 45%,
+      #00d1ff 68%,
+      #9945ff 100%
+    );
+    filter: blur(9px);
+    opacity: 0.45;
+    transition: opacity 0.3s ease;
+    animation: rim-spin 5.5s linear infinite;
+  }
+
+  .rim:hover:not(:disabled)::after {
+    opacity: 0.8;
+    filter: blur(12px);
+  }
+
+  /*
+   * Disabled loses the light entirely, not just its saturation.
+   *
+   * A dimmed glowing edge still reads as "this is the thing to press", which
+   * is exactly wrong on a control that cannot be pressed.
+   */
+  .rim:disabled {
+    animation: none;
+    background-image: linear-gradient(var(--card), var(--card));
+    border-color: var(--border);
+  }
+  .rim:disabled::after {
+    display: none;
+  }
+
+  /* The brand gradient as type. Used on exactly one word per page. */
+  .text-gradient {
+    color: var(--brand);
+  }
+
+  @supports (background-clip: text) or (-webkit-background-clip: text) {
+    .text-gradient {
+      background: linear-gradient(100deg, #b07cff 0%, #8f7bff 38%, #14f195 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+  }
+
+  /*
+   * The light behind the page.
+   *
+   * Three very large, very soft fields of colour that drift on long periods,
+   * fixed to the viewport so scrolling moves the content across them rather
+   * than dragging them along. They are what stop a dark page reading as an
+   * empty one, and the reason they are drifting rather than static is that a
+   * gradient which never changes stops being light and becomes a texture.
+   *
+   * Everything about the numbers here is chosen to stay *under* the content:
+   * opacities in the single digits, blur measured in hundreds of pixels, and
+   * periods long enough (40s+) that no movement is visible unless you look
+   * for it. A background you notice is a background that has failed.
+   */
+  .aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .aurora span {
+    position: absolute;
+    display: block;
+    border-radius: 50%;
+    filter: blur(120px);
+    will-change: transform;
+  }
+
+  .aurora .a1 {
+    top: -22rem;
+    left: -14rem;
+    width: 58rem;
+    height: 46rem;
+    background: radial-gradient(circle, rgba(153, 69, 255, 0.5), transparent 68%);
+    opacity: 0.5;
+    animation: drift-a 46s ease-in-out infinite alternate;
+  }
+
+  .aurora .a2 {
+    top: -12rem;
+    right: -18rem;
+    width: 52rem;
+    height: 40rem;
+    background: radial-gradient(circle, rgba(20, 241, 149, 0.34), transparent 68%);
+    opacity: 0.32;
+    animation: drift-b 58s ease-in-out infinite alternate;
+  }
+
+  .aurora .a3 {
+    top: 46%;
+    left: 34%;
+    width: 46rem;
+    height: 34rem;
+    background: radial-gradient(circle, rgba(0, 174, 255, 0.28), transparent 70%);
+    opacity: 0.22;
+    animation: drift-c 72s ease-in-out infinite alternate;
+  }
+
+  /*
+   * A fine dither over everything.
+   *
+   * Three very soft gradients across a dark page band visibly on an 8-bit
+   * display -- you get concentric rings where the falloff crosses a step. A
+   * single frame of noise at four percent breaks the steps up and the banding
+   * disappears. It costs one fixed layer that never repaints.
+   */
+  .dither {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Violet bloom on the one figure a panel exists to show. */
   .bloom {
-    text-shadow: 0 0 28px var(--amber-glow);
+    text-shadow: 0 0 30px var(--brand-glow);
   }
 
   .term-blink {
@@ -332,6 +519,34 @@
   }
 }
 
+/*
+ * The angle the conic rim is read from.
+ *
+ * Registered so it interpolates. Unregistered, a custom property is a string
+ * to the animation engine and jumps from 0deg to 360deg in one frame.
+ */
+@property --rim-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes rim-spin {
+  to {
+    --rim-angle: 360deg;
+  }
+}
+
+@keyframes drift-a {
+  to { transform: translate3d(9rem, 6rem, 0) scale(1.14); }
+}
+@keyframes drift-b {
+  to { transform: translate3d(-8rem, 9rem, 0) scale(1.1); }
+}
+@keyframes drift-c {
+  to { transform: translate3d(-12rem, -7rem, 0) scale(0.92); }
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -375,7 +590,10 @@
   .rise,
   .plot-line,
   .plot-fill,
-  .meter-fill {
+  .meter-fill,
+  .rim,
+  .rim::after,
+  .aurora span {
     animation: none;
   }
   .plot-line {

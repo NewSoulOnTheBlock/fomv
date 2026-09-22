@@ -69,8 +69,8 @@ export function WithheldGrade({
                 key={i}
                 className="flex-1 rounded-full"
                 style={{
-                  background: i < lit ? "var(--amber)" : "var(--grid)",
-                  boxShadow: i === lit - 1 ? "0 0 8px var(--amber)" : undefined,
+                  background: i < lit ? "var(--brand)" : "rgba(255,255,255,0.07)",
+                  boxShadow: i === lit - 1 ? "0 0 10px var(--brand)" : undefined,
                 }}
               />
             ))}

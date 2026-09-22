@@ -203,11 +203,11 @@ export function Lamp({
   className,
 }: {
   on?: boolean;
-  tone?: "pos" | "amber" | "neg";
+  tone?: "pos" | "brand" | "neg";
   children: ReactNode;
   className?: string;
 }) {
-  const colour = tone === "pos" ? "var(--pos)" : tone === "neg" ? "var(--neg)" : "var(--amber)";
+  const colour = tone === "pos" ? "var(--pos)" : tone === "neg" ? "var(--neg)" : "var(--brand)";
   return (
     <span
       className={cn(

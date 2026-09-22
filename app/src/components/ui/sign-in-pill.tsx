@@ -25,7 +25,7 @@ export interface SignInVisualProps {
 }
 
 /**
- * The default sign-in visual: a square amber key, not a pill.
+ * The default sign-in visual: a lit capsule.
  *
  * The previous version animated open on hover to preview the four login
  * providers. It was the most decorated control in the product and it sat on
@@ -48,12 +48,12 @@ export function SignInPill({ label, onClick, disabled, busy, title, className }:
       aria-busy={busy}
       className={cn(
         "group inline-flex h-10 min-w-0 max-w-full items-center justify-center gap-2 rounded-full px-5",
-        "border border-primary bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]",
+        !disabled && "rim text-foreground",
+        disabled && "border border-border bg-white/[0.03]",
         "whitespace-nowrap text-[14px] font-semibold",
-        "transition-all hover:brightness-110 active:scale-[0.98]",
+        "transition-all active:scale-[0.98]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-        "disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent",
-        "disabled:text-muted-foreground disabled:brightness-100",
+        "disabled:cursor-not-allowed disabled:text-muted-foreground",
         className,
       )}
     >

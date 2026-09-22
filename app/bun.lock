@@ -6,6 +6,7 @@
       "name": "fomv-app",
       "dependencies": {
         "@privy-io/react-auth": "^2.13.0",
+        "buffer": "^6.0.3",
         "clsx": "^2.1.1",
         "framer-motion": "^13.4.0",
         "lucide-react": "^1.47.0",

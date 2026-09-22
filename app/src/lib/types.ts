@@ -138,3 +138,24 @@ export interface AppData {
   roster: RosterEntry[];
   generatedAtMs: number;
 }
+
+/**
+ * What the apply form posts.
+ *
+ * Every field is optional and every field is a string, because this is what a
+ * half-filled form looks like on the way out. The server owns the rules; the
+ * client's job is to send the answers as typed, not to decide which ones
+ * count. Duplicating the validation here would mean two rulebooks and one of
+ * them silently wrong.
+ */
+export interface ApplicationDraft {
+  handle?: string;
+  address?: string;
+  chain?: string;
+  email?: string;
+  telegram?: string;
+  twitter?: string;
+  bookUsd?: string;
+  strategy?: string;
+  elsewhere?: string[];
+}

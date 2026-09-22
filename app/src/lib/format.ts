@@ -86,3 +86,26 @@ export function bandOf(v: number | null): "good" | "ok" | "warn" | "bad" | "none
   if (v >= 45) return "warn";
   return "bad";
 }
+
+/** A signed figure, for values where the direction is the point. */
+export function signedUsd(v: number | null | undefined, opts: { compact?: boolean } = {}): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return EMPTY;
+  const body = usd(Math.abs(v), opts);
+  return v < 0 ? `-${body}` : `+${body}`;
+}
+
+/** `pos` / `neg` / `null` for a signed number, so colour follows the sign only. */
+export function signOf(v: number | null | undefined): "pos" | "neg" | null {
+  if (v === null || v === undefined || !Number.isFinite(v) || v === 0) return null;
+  return v > 0 ? "pos" : "neg";
+}
+
+export function count(v: number | null | undefined): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return EMPTY;
+  return Math.round(v).toLocaleString();
+}
+
+/** The CSS colour for a score band, ready to drop into a style attribute. */
+export function bandColor(v: number | null): string {
+  return `var(--band-${bandOf(v)})`;
+}

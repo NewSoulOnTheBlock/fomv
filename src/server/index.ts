@@ -53,6 +53,8 @@ const cfg = {
     .map((s) => s.trim())
     .filter(Boolean),
   tradeFeeBps: Number(process.env.FOMV_TRADE_FEE_BPS ?? 25),
+  // Absent disables the applications inbox rather than opening it.
+  adminToken: process.env.FOMV_ADMIN_TOKEN,
 };
 
 function required(name: string): string {
@@ -173,7 +175,12 @@ async function loop(): Promise<void> {
   }
 }
 
-const handler = createHandler({ store, privy, allowedOrigins: cfg.allowedOrigins });
+const handler = createHandler({
+  store,
+  privy,
+  allowedOrigins: cfg.allowedOrigins,
+  adminToken: cfg.adminToken,
+});
 
 const server = Bun.serve({
   port: cfg.port,
@@ -200,7 +207,8 @@ console.log(`  mode      ${cfg.live ? "LIVE — real transactions will be signed
 console.log(`  api       http://localhost:${server.port}`);
 console.log(`  database  ${cfg.dbPath}`);
 console.log(`  interval  ${cfg.intervalMs / 1000}s`);
-console.log(`  fee       ${cfg.tradeFeeBps}bps per mirrored trade -> ${cfg.treasury.slice(0, 8)}…\n`);
+console.log(`  fee       ${cfg.tradeFeeBps}bps per mirrored trade -> ${cfg.treasury.slice(0, 8)}…`);
+console.log(`  inbox     ${cfg.adminToken ? "GET /admin/applications (bearer)" : "disabled — set FOMV_ADMIN_TOKEN"}\n`);
 if (!cfg.live) console.log(`  Set MODE=live to sign real transactions.\n`);
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {

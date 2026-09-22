@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { LogIn } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -25,78 +24,47 @@ export interface SignInVisualProps {
   className?: string;
 }
 
-const PROVIDERS = [
-  { key: "google", label: "Google" },
-  { key: "x", label: "X" },
-  { key: "discord", label: "Discord" },
-  { key: "email", label: "Email" },
-] as const;
-
 /**
- * Placeholder sign-in visual: a pill that widens to preview the providers.
+ * The default sign-in visual: a square amber key, not a pill.
  *
- * Stands in for `@skiper-ui/skiper21`, which is a Skiper UI Pro component and
- * needs a licence key to fetch. Written against the same props the real one
- * will be wrapped in, so swapping it is a one-line change in
- * `SignInButton` -- nothing about authentication moves.
+ * The previous version animated open on hover to preview the four login
+ * providers. It was the most decorated control in the product and it sat on
+ * the least interesting decision — which social account to use — while the
+ * consequential button ("authorise trade signing") was plain. Removing the
+ * flourish here and spending the attention on the consent panel is most of
+ * what this redesign is.
  *
- * The expansion is decoration over a plain button: it stays a single
- * `<button>` with its own accessible label, so keyboard and screen-reader
- * users get the control whether or not the animation runs.
+ * The caret blinks only while idle. A cursor that keeps blinking through a
+ * pending action claims the control is waiting for you when it is not.
  */
 export function SignInPill({ label, onClick, disabled, busy, title, className }: SignInVisualProps) {
-  const [open, setOpen] = useState(false);
-  const expanded = open && !disabled;
-
   return (
-    <motion.button
+    <button
       type="button"
-      layout
       onClick={onClick}
-      onHoverStart={() => setOpen(true)}
-      onHoverEnd={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
       disabled={disabled}
       title={title}
       aria-label={label}
       aria-busy={busy}
-      transition={{ type: "spring", bounce: 0.18, duration: 0.45 }}
       className={cn(
-        "relative flex h-10 items-center justify-center gap-2 overflow-hidden rounded-full px-4",
-        "border font-semibold",
-        "disabled:cursor-not-allowed disabled:opacity-45",
+        "group inline-flex h-8 items-center justify-center gap-2 rounded-[2px] px-3",
+        "border border-primary bg-primary text-primary-foreground",
+        "font-mono text-[12px] font-semibold tracking-wide whitespace-nowrap",
+        "transition-[filter,background,border-color] hover:brightness-110",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        "disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent",
+        "disabled:text-muted-foreground disabled:brightness-100",
         className,
       )}
-      style={{
-        // Brand tokens rather than Tailwind palette, so the control tracks the
-        // rest of the product when the theme changes.
-        background: disabled ? "var(--bg-raised)" : "var(--accent)",
-        borderColor: disabled ? "var(--line)" : "var(--accent)",
-        color: disabled ? "var(--text-dim)" : "#05210f",
-      }}
-      animate={{ width: expanded ? 300 : 148 }}
-      initial={false}
     >
-      <motion.span layout="position" className="whitespace-nowrap text-sm">
-        {busy ? "Opening…" : label}
-      </motion.span>
-
-      {expanded && !busy && (
-        <motion.span
-          initial={{ opacity: 0, filter: "blur(4px)" }}
-          animate={{ opacity: 1, filter: "blur(0px)" }}
-          transition={{ delay: 0.12 }}
-          className="flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium opacity-80"
-        >
-          {PROVIDERS.map((p, i) => (
-            <span key={p.key} className="flex items-center gap-1.5">
-              {i > 0 && <span aria-hidden className="opacity-40">·</span>}
-              {p.label}
-            </span>
-          ))}
-        </motion.span>
+      <LogIn className="size-3.5 shrink-0" aria-hidden />
+      <span>{busy ? "opening" : label}</span>
+      {!disabled && (
+        <span
+          aria-hidden
+          className={cn("w-[7px] h-[13px] bg-current/80", busy ? "opacity-40" : "term-blink")}
+        />
       )}
-    </motion.button>
+    </button>
   );
 }

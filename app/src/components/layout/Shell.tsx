@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 
 import { AccountChip } from "@/components/AccountChip";
 import { FooterLinks } from "@/components/layout/FooterLinks";
+import { SocialButtons } from "@/components/SocialButtons";
 import { Ticker } from "@/components/layout/Ticker";
 import { cn } from "@/lib/utils";
 import { href, type Route } from "@/lib/router";
@@ -113,7 +114,11 @@ function Header({ route }: { route: Route }) {
           })}
         </nav>
 
-        <div className="ml-auto flex min-w-0 items-center gap-3">
+        <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+          {/* Hidden on the narrowest screens: the row already gives way to the
+              sign-in control there, and a social link is not what someone came
+              to the header for. */}
+          <SocialButtons size="sm" className="hidden sm:flex" />
           <AccountChip />
         </div>
       </div>

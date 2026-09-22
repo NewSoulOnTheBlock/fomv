@@ -5,6 +5,7 @@ import { LISTING_TERMS } from "@engine/platform/listing.js";
 import { EdgeGlyph } from "@/components/viz/EdgePentagon";
 import { TraderDeck } from "@/components/roster/TraderDeck";
 import { DataSources } from "@/components/DataSources";
+import { TokenChip } from "@/components/TokenChip";
 import { Sparkline } from "@/components/viz/Sparkline";
 import { FactLine, Panel, PanelBody, SectionRule } from "@/components/term";
 import { Button } from "@/components/ui/button";
@@ -93,8 +94,13 @@ function Masthead({
         </p>
       </div>
 
+      {/* Below the argument and above the deck: someone looking for the
+          contract knows to look near the top, and someone reading the page
+          reaches it after the sentence that explains what FOMV is. */}
+      <TokenChip size="md" className="rise step-2 mt-8 justify-center" />
+
       {/* The deck is the product: the people, and how few of them there are. */}
-      <TraderDeck roster={roster} profiles={profiles} className="rise step-2 mt-10" />
+      <TraderDeck roster={roster} profiles={profiles} className="rise step-3 mt-8" />
 
       <div className="rise step-4 term-divided material mt-12 grid rounded-xl sm:grid-cols-3">
         <Headline value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} label="per mirrored trade" />
@@ -102,7 +108,7 @@ function Masthead({
         <Headline value="self" label="custody, always" tone="var(--pos)" />
       </div>
 
-      <DataSources className="rise step-5 mt-10" />
+      <DataSources className="rise step-6 mt-10" />
     </section>
   );
 }

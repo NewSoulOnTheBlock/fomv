@@ -63,6 +63,19 @@ export const LAUNCH_ROSTER: RosterCandidate[] = [
       "sample read far better (79% win, 2.16 profit factor) and was flattering - it caught " +
       "one good afternoon.",
   },
+  {
+    handle: "MFCheetoTiger",
+    leader: "9Y3RsSURHJL9DGvAbRhbBHPUs7YsnXmiCkpMkCn5RJLW",
+    chain: "solana",
+    note:
+      "Scored 2026-09-22 and NOT yet listable. This address has 22 transactions in "
+      + "total, all from 2026-09-22, and holds 0 SOL. 18 decoded as swaps across a "
+      + "3.6-hour window: 8 complete round trips, 0% win rate, -$161 realised. The "
+      + "scorer withholds a grade below 20 closed trips, and correctly does so here. "
+      + "Decoding is not the problem (18 of 22 transactions parsed) - there is simply "
+      + "almost no history. Likely a fresh or burner wallet; confirm the intended "
+      + "address before listing.",
+  },
 ];
 
 /** Candidates FOMV can actually mirror today. */

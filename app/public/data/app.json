@@ -27,7 +27,17 @@
           "note": "EVM address supplied alongside the Solana one. Which EVM chain is not yet established, and there is no EVM ChainAdapter in this repo, so nothing here reads, scores or mirrors it. A pointfarmcap vault is Solana-only until that adapter exists."
         }
       ]
+    },
+    {
+      "handle": "MFCheetoTiger",
+      "leader": "9Y3RsSURHJL9DGvAbRhbBHPUs7YsnXmiCkpMkCn5RJLW",
+      "chain": "solana",
+      "status": "approved",
+      "vaultAddress": null,
+      "withdrawFeeBps": 100,
+      "performanceFeeBps": 1000,
+      "note": "Scored 2026-09-22 and NOT yet listable. This address has 22 transactions in total, all from 2026-09-22, and holds 0 SOL. 18 decoded as swaps across a 3.6-hour window: 8 complete round trips, 0% win rate, -$161 realised. The scorer withholds a grade below 20 closed trips, and correctly does so here. Decoding is not the problem (18 of 22 transactions parsed) - there is simply almost no history. Likely a fresh or burner wallet; confirm the intended address before listing."
     }
   ],
-  "generatedAtMs": 1790078465133
+  "generatedAtMs": 1790080379382
 }

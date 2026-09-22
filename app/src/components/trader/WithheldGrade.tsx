@@ -50,7 +50,7 @@ export function WithheldGrade({
         className="border-warn/20"
       />
       <PanelBody className="space-y-5">
-        <p className="text-[21px] leading-[1.45]">
+        <p className="text-[17px] leading-[1.5]">
           The scorer <span className="text-warn">declined to grade this wallet</span>. It has{" "}
           {have} complete round trip{have === 1 ? "" : "s"}; it needs {required}.
         </p>
@@ -60,7 +60,7 @@ export function WithheldGrade({
             8-of-20 look like a grade of 40. */}
         <div>
           <div
-            className="flex h-5 gap-[3px]"
+            className="flex h-4 gap-[3px]"
             role="img"
             aria-label={`${have} of ${required} round trips recorded`}
           >
@@ -80,7 +80,7 @@ export function WithheldGrade({
           </div>
         </div>
 
-        <div className="space-y-4 border-t border-border pt-6 text-[15px] leading-relaxed text-muted-foreground">
+        <div className="space-y-3.5 border-t border-border pt-5 text-[14px] leading-relaxed text-muted-foreground">
           <p>
             Every dimension is withheld together rather than a few being scored and the rest left
             blank. A profit factor over eight trades is one good afternoon or one bad one, and a

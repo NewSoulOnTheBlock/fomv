@@ -57,11 +57,11 @@ function ReadoutStrip({ data }: { data: AppData | null }) {
 
   return (
     <div className="border-b border-border bg-[#050507]">
-      <div className="mx-auto flex h-10 max-w-[1200px] items-center gap-7 overflow-x-auto px-5 sm:px-8">
+      <div className="mx-auto flex h-9 max-w-[1200px] items-center gap-6 overflow-x-auto px-5 sm:px-8">
         {cells.map(([k, v]) => (
           <span key={k} className="flex shrink-0 items-baseline gap-2">
             <span className="term-label">{k}</span>
-            <span className="font-mono text-[13px] text-secondary-foreground">{v}</span>
+            <span className="font-mono text-[12px] text-secondary-foreground">{v}</span>
           </span>
         ))}
         <span className="term-label ml-auto hidden shrink-0 sm:block">
@@ -77,22 +77,22 @@ function Header({ route }: { route: Route }) {
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="term-grid pointer-events-none absolute inset-0 opacity-50" aria-hidden />
 
-      <div className="relative mx-auto flex h-[84px] max-w-[1200px] items-center gap-4 px-5 sm:gap-12 sm:px-8">
+      <div className="relative mx-auto flex h-[68px] max-w-[1200px] items-center gap-4 px-5 sm:gap-10 sm:px-8">
         <a href={href("/")} className="group flex min-w-0 shrink items-center gap-3">
           <img
             src="/mark-72.png"
             srcSet="/mark-72.png 1x, /mark-144.png 2x"
             alt=""
-            width={36}
-            height={36}
+            width={30}
+            height={30}
             decoding="async"
-            className="block size-9 shrink-0"
+            className="block size-[30px] shrink-0"
           />
           <span className="flex flex-col leading-none">
             {/* Bodoni's thins vanish at small sizes on a dark ground, so the
                 wordmark is set heavy where body copy is set regular. */}
             <span
-              className="display text-[34px] leading-none tracking-[0.02em]"
+              className="display text-[27px] leading-none tracking-[0.01em]"
               // `font-variation-settings` overrides `font-weight` outright, so the
               // weight has to travel on the axis or it silently stays at 400.
               style={{ fontVariationSettings: '"opsz" 96, "wght" 700' }}
@@ -112,7 +112,7 @@ function Header({ route }: { route: Route }) {
                 href={href(item.path)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "whitespace-nowrap px-2 py-1 font-mono text-[15px] tracking-wide transition-colors sm:px-3",
+                  "whitespace-nowrap px-2 py-1 font-mono text-[13px] tracking-wide transition-colors sm:px-3",
                   active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -136,8 +136,8 @@ function Footer() {
     <footer className="engraved mt-auto">
       <div className="mx-auto grid max-w-[1200px] gap-8 px-5 py-12 sm:px-8 md:grid-cols-[1fr_auto] md:items-start">
         <div className="max-w-2xl space-y-4">
-          <div className="display text-[38px]">FOMV</div>
-          <p className="text-[14px] leading-relaxed text-faint">
+          <div className="display text-[28px]">FOMV</div>
+          <p className="text-[13px] leading-relaxed text-faint">
             Copy-trading replicates another account's transactions at the operator's sole
             direction. Nothing here is investment advice, and a published grade is a measurement of
             the past, not a forecast. Authorising FOMV lets it sign swaps on your wallet under the
@@ -150,7 +150,7 @@ function Footer() {
             <span>no deposit</span>
           </div>
         </div>
-        <nav className="flex gap-x-7 gap-y-2.5 text-[15px] md:flex-col" aria-label="Footer">
+        <nav className="flex gap-x-7 gap-y-2.5 text-[13px] md:flex-col" aria-label="Footer">
           <a href={href("/")} className="text-muted-foreground hover:text-foreground">
             Roster
           </a>

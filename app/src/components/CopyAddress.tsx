@@ -69,7 +69,7 @@ export function CopyAddress({
       className={cn(
         "group inline-flex h-9 items-center gap-2 rounded-[2px] px-2.5",
         "border border-transparent hover:border-border",
-        "font-mono text-[15px] text-muted-foreground hover:text-foreground",
+        "font-mono text-[13px] text-muted-foreground hover:text-foreground",
         "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         className,
       )}

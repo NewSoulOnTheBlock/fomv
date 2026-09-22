@@ -91,7 +91,7 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
         <PanelBody className="space-y-3">
           <Skeleton className="h-4 w-40" />
           <Skeleton className="h-4 w-full" />
-          <p className="text-[15px] text-muted-foreground">
+          <p className="text-[14px] text-muted-foreground">
             Creating your Solana wallet. Privy does this once, on first sign-in.
           </p>
         </PanelBody>
@@ -124,7 +124,7 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
 function SignedOut({ configured }: { configured: boolean }) {
   return (
     <PanelBody className="space-y-4">
-      <p className="text-[15px] leading-relaxed text-muted-foreground">
+      <p className="text-[14px] leading-relaxed text-muted-foreground">
         Sign in and a Solana wallet is created for you. You keep it. FOMV never holds your funds
         and cannot move them out.
       </p>
@@ -160,7 +160,7 @@ function NotFollowing({
   return (
     <>
       <div className="px-4 pt-4">
-        <p className="text-[15px] leading-relaxed text-muted-foreground">
+        <p className="text-[14px] leading-relaxed text-muted-foreground">
           Authorise FOMV to mirror this trader's swaps into your own wallet.
         </p>
       </div>
@@ -269,7 +269,7 @@ function Permission({ allowed = false, children }: { allowed?: boolean; children
       ) : (
         <X className="size-3.5 mt-0.5 shrink-0 text-neg" aria-hidden />
       )}
-      <span className="flex-1 text-[14px] leading-snug text-secondary-foreground">{children}</span>
+      <span className="flex-1 text-[13px] leading-snug text-secondary-foreground">{children}</span>
       <span
         className="term-label shrink-0 mt-0.5"
         style={{ color: allowed ? "var(--pos)" : "var(--neg)" }}

@@ -52,7 +52,7 @@ export function PanelHead({
   return (
     <div
       className={cn(
-        "flex h-11 items-center justify-between gap-3 border-b border-border px-4",
+        "flex h-10 items-center justify-between gap-3 border-b border-border px-4",
         className,
       )}
     >
@@ -87,10 +87,10 @@ export function SectionRule({
   className?: string;
 }) {
   return (
-    <div className={cn("term-rule mb-6 mt-20", className)}>
+    <div className={cn("term-rule mb-5 mt-16", className)}>
       <h2 className="flex items-baseline gap-4">
         {index && <span className="font-mono text-[12px] text-primary">{index}</span>}
-        <span className="display text-[clamp(1.9rem,3.6vw,2.75rem)] text-foreground">{children}</span>
+        <span className="display text-[clamp(1.5rem,2.5vw,2.05rem)] text-foreground">{children}</span>
       </h2>
       {aside && <span className="term-label order-last shrink-0 pl-3">{aside}</span>}
     </div>
@@ -116,20 +116,20 @@ export function Stat({
   className?: string;
 }) {
   const sizes = {
-    sm: "text-[17px]",
-    md: "text-[26px]",
-    lg: "text-[clamp(3rem,6vw,4.75rem)]",
+    sm: "text-[15px]",
+    md: "text-[22px]",
+    lg: "text-[clamp(2.5rem,4.4vw,3.5rem)]",
   } as const;
   return (
     <div className={cn("min-w-0", className)}>
       <div className="term-label truncate">{label}</div>
       <div
-        className={cn("mt-2.5 font-mono leading-[0.95] tracking-[-0.02em]", sizes[size])}
+        className={cn("mt-2 font-mono leading-[0.98] tracking-[-0.02em]", sizes[size])}
         style={tone ? { color: tone } : undefined}
       >
         {value}
       </div>
-      {sub && <div className="mt-2.5 text-[12.5px] leading-snug text-faint">{sub}</div>}
+      {sub && <div className="mt-2 text-[12px] leading-snug text-faint">{sub}</div>}
     </div>
   );
 }
@@ -147,7 +147,7 @@ export function LeaderRow({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-baseline py-[7px] text-[15px]", className)}>
+    <div className={cn("flex items-baseline py-[6px] text-[14px]", className)}>
       <span className="shrink-0 text-muted-foreground">{label}</span>
       <span className="term-leader" aria-hidden />
       <span className="shrink-0 font-mono" style={tone ? { color: tone } : undefined}>
@@ -180,7 +180,7 @@ export function FactLine({
               ·
             </span>
           )}
-          <span className="font-mono text-[13px] tracking-[0.04em] text-muted-foreground">{f}</span>
+          <span className="font-mono text-[12px] tracking-[0.04em] text-muted-foreground">{f}</span>
         </span>
       ))}
     </div>
@@ -244,10 +244,13 @@ export function ScoreBar({
   value,
   className,
   segments = SEGMENTS,
+  /** Light the segments in sequence on mount, like a needle sweeping. */
+  animate = false,
 }: {
   value: number | null;
   className?: string;
   segments?: number;
+  animate?: boolean;
 }) {
   const band = bandOf(value);
   const lit = value === null ? 0 : Math.round((Math.max(0, Math.min(100, value)) / 100) * segments);
@@ -261,8 +264,15 @@ export function ScoreBar({
       {Array.from({ length: segments }, (_, i) => (
         <span
           key={i}
-          className={cn("flex-1 rounded-[1px]", value === null && "opacity-70")}
+          className={cn(
+            "flex-1 rounded-[1px]",
+            value === null && "opacity-70",
+            animate && "segment-in",
+          )}
           style={{
+            // Capped total stagger: a bar that takes longer than a tenth of a
+            // second to fill stops being an instrument and starts being a wait.
+            ...(animate ? { "--seg-delay": `${Math.min(i * 9, 110)}ms` } : null),
             background:
               value === null
                 ? "repeating-linear-gradient(135deg, var(--band-none) 0 2px, transparent 2px 4px)"
@@ -270,7 +280,7 @@ export function ScoreBar({
                   ? `var(--band-${band})`
                   : "var(--grid)",
             boxShadow: value !== null && i === lit - 1 ? `0 0 8px var(--band-${band})` : undefined,
-          }}
+          } as React.CSSProperties}
         />
       ))}
     </div>
@@ -318,7 +328,7 @@ export function Callout({
   } as const;
   return (
     <div
-      className={cn("border-l-2 py-2.5 pl-4 pr-2 text-[15px] leading-relaxed", tones[tone], className)}
+      className={cn("border-l-2 py-2.5 pl-4 pr-2 text-[14px] leading-relaxed", tones[tone], className)}
     >
       {children}
     </div>

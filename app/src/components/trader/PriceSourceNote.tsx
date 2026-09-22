@@ -36,7 +36,7 @@ export function PriceSourceNote({
       <Panel className={className}>
         <PanelHead label="price source" aside="not recorded" />
         <PanelBody>
-          <p className="text-[15px] leading-relaxed text-muted-foreground">
+          <p className="text-[14px] leading-relaxed text-muted-foreground">
             This profile was computed before the price source was recorded, so the two figures
             above cannot be attributed to either the market or the trader's own fills. Re-run{" "}
             <code className="font-mono text-foreground">cli.ts profile</code> to get an attributed
@@ -52,11 +52,11 @@ export function PriceSourceNote({
       <Panel className={cn("border-warn/30", className)}>
         <PanelHead label="price source" aside="observed fills" className="border-warn/20" />
         <PanelBody className="space-y-2">
-          <p className="text-[17px] leading-relaxed text-foreground">
+          <p className="text-[15px] leading-relaxed text-foreground">
             The two figures above were measured against{" "}
             <span className="text-warn">this trader's own fills</span>, not against the market.
           </p>
-          <p className="text-[15px] leading-relaxed text-muted-foreground">
+          <p className="text-[14px] leading-relaxed text-muted-foreground">
             No candle feed was configured when this profile was computed, so the only prices
             available after an entry are ones the trader themselves traded at. They act when price
             moves, which biases both dimensions in their favour — read them as an upper bound
@@ -75,7 +75,7 @@ export function PriceSourceNote({
     <Panel className={className}>
       <PanelHead label="price source" aside={source.feed} />
       <PanelBody className="space-y-3">
-        <p className="text-[17px] leading-relaxed">
+        <p className="text-[15px] leading-relaxed">
           Measured against <span className="text-pos">the market</span>, not against their own
           fills.
         </p>
@@ -102,7 +102,7 @@ function Figure({ label, value, sub }: { label: string; value: string; sub?: str
   return (
     <div>
       <div className="term-label">{label}</div>
-      <div className="mt-2.5 font-mono text-[26px] leading-none">{value}</div>
+      <div className="mt-2 font-mono text-[21px] leading-none">{value}</div>
       {sub && <div className="mt-2 text-[12px] text-faint">{sub}</div>}
     </div>
   );

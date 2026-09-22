@@ -47,9 +47,9 @@ export function SignInPill({ label, onClick, disabled, busy, title, className }:
       aria-label={label}
       aria-busy={busy}
       className={cn(
-        "group inline-flex h-10 min-w-0 max-w-full items-center justify-center gap-2.5 rounded-[2px] px-4",
+        "group inline-flex h-9 min-w-0 max-w-full items-center justify-center gap-2 rounded-[2px] px-3.5",
         "border border-primary bg-primary text-primary-foreground",
-        "whitespace-nowrap font-mono text-[14px] font-semibold tracking-wide",
+        "whitespace-nowrap font-mono text-[13px] font-semibold tracking-wide",
         "transition-[filter,background,border-color] hover:brightness-110",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         "disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent",

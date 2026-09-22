@@ -42,7 +42,7 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
         <Panel>
           <PanelHead label="unknown trader" />
           <PanelBody className="space-y-4">
-            <p className="text-[16px] text-muted-foreground">
+            <p className="text-[15px] text-muted-foreground">
               No trader with address{" "}
               <span className="font-mono">{shortAddress(leader, 8, 8)}</span> is on the roster.
             </p>
@@ -65,17 +65,17 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
     <div className="pt-7">
       <a
         href={href("/")}
-        className="inline-flex items-center gap-1.5 font-mono text-[14px] text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center gap-1.5 font-mono text-[13px] text-muted-foreground hover:text-foreground"
       >
         <ChevronLeft className="size-3.5" />
         roster
       </a>
 
       {/* The instrument band. */}
-      <section className="rise step-1 mt-7 border-b border-border pb-16">
+      <section className="rise step-1 mt-6 border-b border-border pb-12">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div className="min-w-0">
-            <h1 className="display text-[clamp(3.2rem,8vw,6.5rem)]">{entry.handle}</h1>
+            <h1 className="display text-[clamp(2.3rem,4.6vw,3.6rem)]">{entry.handle}</h1>
             <FactLine
               className="mt-3"
               facts={[
@@ -94,8 +94,8 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
               its 76px numeral leaves "grade D" fifty pixels below every other
               caption, which reads as an orphan rather than as a hierarchy.
             */}
-            <div className="mt-14 grid gap-10 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-12">
-              <div className="sm:border-r sm:border-border sm:pr-12">
+            <div className="mt-10 grid gap-8 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-10">
+              <div className="sm:border-r sm:border-border sm:pr-10">
                 <Stat
                   label="edge score"
                   value={
@@ -112,7 +112,7 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
                 />
               </div>
 
-              <div className="grid gap-x-10 gap-y-9 sm:grid-cols-3">
+              <div className="grid gap-x-9 gap-y-8 sm:grid-cols-3">
                 <Stat
                   label="profit factor"
                   value={ratio(c?.profitFactor)}
@@ -139,25 +139,26 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
                 <EdgePentagon
                   dimensions={dimensionsFor(p?.dimensions)}
                   score={p?.edgeScore ?? null}
-                  size={400}
+                  size={330}
+                  animate
                 />
                 {/* An entirely hatched face is a correct reading and an
                     alarming one. It gets a caption where it is looked at,
                     rather than an explanation a thousand pixels further down. */}
-                <figcaption className="term-label mt-6 text-center">
+                <figcaption className="term-label mt-5 text-center">
                   {p?.grade === "insufficient-data"
                     ? "no reading — too few closed trades to grade"
                     : "hatched sectors could not be measured"}
                 </figcaption>
               </figure>
             ) : (
-              <Skeleton className="size-[400px] rounded-none" />
+              <Skeleton className="size-[330px] rounded-none" />
             )}
           </div>
         </div>
       </section>
 
-      <div className="mt-2 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_388px]">
+      <div className="mt-2 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_364px]">
         <div className="order-2 min-w-0 lg:order-1">
           {profile && <Audit data={profile} />}
 
@@ -165,7 +166,7 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
             <Panel className="mt-10">
               <PanelHead label="no audit yet" />
               <PanelBody className="space-y-3">
-                <p className="text-[16px] text-muted-foreground">
+                <p className="text-[15px] text-muted-foreground">
                   This trader is on the roster but their profile has not been computed into the
                   site data.
                 </p>

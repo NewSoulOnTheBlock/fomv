@@ -205,7 +205,7 @@ export function ApplyPage() {
                         value={draft.strategy}
                         onChange={(e) => set("strategy", e.target.value)}
                         placeholder="Size, holding period, how you pick, what you avoid. If your edge depends on being first by two seconds, say so — a mirrored account is always second and we would rather know now."
-                        className="resize-y font-sans text-[16px]"
+                        className="resize-y font-sans text-[15px]"
                       />
                       <p className="text-[13px] leading-snug text-faint">
                         Two or three sentences is plenty. It is read by a person, not scored.
@@ -281,14 +281,14 @@ export function ApplyPage() {
 
 function Masthead() {
   return (
-    <div className="rise step-1 border-b border-border pb-16 pt-20">
+    <div className="rise step-1 border-b border-border pb-12 pt-14">
       <div className="term-label mb-8">for traders · {LISTING_TERMS.maxRoster} seats</div>
-      <h1 className="display max-w-4xl text-[clamp(3.2rem,8.2vw,6.75rem)]">
+      <h1 className="display max-w-3xl text-[clamp(2.4rem,5vw,4rem)]">
         Get audited. Get listed.
         <br />
         Get <span className="display-em">followed</span>.
       </h1>
-      <p className="mt-10 max-w-2xl text-[19px] leading-[1.55] text-muted-foreground">
+      <p className="mt-8 max-w-2xl text-[17px] leading-[1.6] text-muted-foreground">
         Tell us which wallet to look at and pick a time. Before the call we run the same
         five-dimension audit you can see on any roster page against your real on-chain history, so
         the conversation starts from your numbers rather than your pitch.
@@ -326,7 +326,7 @@ function Received({
             ))}
           </>
         ) : (
-          <p className="text-[16px] leading-relaxed text-muted-foreground">
+          <p className="text-[15px] leading-relaxed text-muted-foreground">
             Logged{handle ? <> under <span className="font-mono text-foreground">{handle}</span></> : null}. The
             audit runs before the call, so pick a time at least a day out if you can — it needs a
             few hundred RPC reads and a while to price everything.
@@ -345,7 +345,7 @@ function TermsPanel() {
         {LISTING_TERMS.includes.map((line) => (
           <div key={line} className="flex items-start gap-2.5 px-3 py-2.5">
             <Check className="size-3.5 mt-0.5 shrink-0 text-pos" aria-hidden />
-            <span className="text-[14px] leading-snug text-secondary-foreground">{line}</span>
+            <span className="text-[13px] leading-snug text-secondary-foreground">{line}</span>
           </div>
         ))}
       </div>
@@ -354,7 +354,7 @@ function TermsPanel() {
         {LISTING_TERMS.excludes.map((line) => (
           <div key={line} className="flex items-start gap-2.5 px-3 py-2.5">
             <Minus className="size-3.5 mt-0.5 shrink-0 text-faint" aria-hidden />
-            <span className="text-[14px] leading-snug text-muted-foreground">{line}</span>
+            <span className="text-[13px] leading-snug text-muted-foreground">{line}</span>
           </div>
         ))}
       </div>
@@ -367,11 +367,11 @@ function BarPanel() {
     <Panel>
       <PanelHead label="the bar" aside="published" />
       <PanelBody className="space-y-3">
-        <p className="text-[15px] leading-relaxed text-muted-foreground">
+        <p className="text-[14px] leading-relaxed text-muted-foreground">
           Stated so you can judge before spending half an hour on a call. None of it is enforced by
           the form — a borderline book with a good reason is worth the conversation.
         </p>
-        <div className="space-y-3 font-mono text-[15px]">
+        <div className="space-y-2.5 font-mono text-[14px]">
           <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">closed round trips</span>
             <span>≥ {LISTING_BAR.minClosedTrades}</span>
@@ -408,7 +408,7 @@ function Fieldset({
   return (
     <fieldset className="space-y-4">
       <legend className="term-rule mb-5 w-full">
-        <span className="display text-[24px] text-foreground">{legend}</span>
+        <span className="display text-[20px] text-foreground">{legend}</span>
         {hint && <span className="term-label order-last shrink-0 pl-3">{hint}</span>}
       </legend>
       {children}
@@ -443,7 +443,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
-          mono ? "h-11 font-mono text-[14px]" : "h-11 text-[16px]",
+          mono ? "h-10 font-mono text-[13px]" : "h-10 text-[15px]",
           // A field you cannot type in should not invite you to try.
           rest.readOnly && "bg-muted text-muted-foreground focus-visible:ring-0 cursor-default",
         )}

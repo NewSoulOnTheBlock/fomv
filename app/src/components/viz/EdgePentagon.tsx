@@ -55,6 +55,15 @@ export function EdgePentagon({
   score,
   size = 320,
   labels = true,
+  /**
+   * Trace the outline on mount instead of showing it complete.
+   *
+   * A shape that arrives finished reads as an image. One that is drawn reads
+   * as a reading being taken, which is the whole metaphor — so the hero
+   * instrument animates and the 58px glyphs in a list do not, because fifty
+   * of those drawing at once would be a fireworks display.
+   */
+  animate = false,
   className,
 }: {
   dimensions: EdgeDimension[];
@@ -62,6 +71,7 @@ export function EdgePentagon({
   score: number | null;
   size?: number;
   labels?: boolean;
+  animate?: boolean;
   className?: string;
 }) {
   const uid = useId().replace(/[:]/g, "");
@@ -195,7 +205,12 @@ export function EdgePentagon({
 
       {/* The reading. */}
       {wedges.map((d, i) => (
-        <path key={`w${i}`} d={d} fill={`url(#fill-${uid})`} />
+        <path
+          key={`w${i}`}
+          d={d}
+          fill={`url(#fill-${uid})`}
+          className={animate ? "plot-fill" : undefined}
+        />
       ))}
       {outline && (
         <path
@@ -205,6 +220,11 @@ export function EdgePentagon({
           strokeWidth="1.6"
           strokeLinejoin="round"
           filter={`url(#glow-${uid})`}
+          className={animate ? "plot-line" : undefined}
+          // The dash pattern has to be the path's own length or the trace
+          // either finishes early or never arrives. The perimeter is bounded
+          // by the circumscribed circle, which is cheap and always enough.
+          style={animate ? ({ "--plot-length": Math.ceil(r * 7) } as React.CSSProperties) : undefined}
         />
       )}
 
@@ -218,6 +238,7 @@ export function EdgePentagon({
             cy={g.point.y}
             r={size > 120 ? 3 : 2}
             fill={`var(--band-${band})`}
+            className={animate ? "plot-fill" : undefined}
           />
         ))}
 

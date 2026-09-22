@@ -95,8 +95,8 @@
   --color-neg: var(--neg);
   --color-warn: var(--warn);
 
-  --font-display: "Bodoni Moda", ui-serif, "Didot", Georgia, serif;
-  --font-sans: "Spline Sans", ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Newsreader", ui-serif, Georgia, serif;
+  --font-sans: "Instrument Sans", ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --radius-sm: 2px;
@@ -126,17 +126,15 @@
     color: var(--foreground);
     font-family: var(--font-sans);
     /*
-     * Sixteen, not fourteen.
+     * Fifteen.
      *
-     * A dense dashboard sets everything at 13-14px and lets the reader lean
-     * in. That is the right call for a tool someone lives inside all day and
-     * the wrong one here: this page has to make an argument to a stranger
-     * before it shows them a table. Prose is set at a size it can be read at,
-     * and the *contrast* between that and the 11px mono labels is what makes
-     * the hierarchy visible from across the room.
+     * Fourteen made the page a dense tool and sixteen made it a brochure. The
+     * hierarchy does not come from the body size anyway -- it comes from the
+     * distance between this and the 11px mono labels, which is wide at any of
+     * the three.
      */
-    font-size: 16px;
-    line-height: 1.65;
+    font-size: 15px;
+    line-height: 1.62;
     font-feature-settings: "ss01", "cv05";
     -webkit-font-smoothing: antialiased;
   }
@@ -186,28 +184,29 @@
   /*
    * The display face, for anything the product asserts in words.
    *
-   * Bodoni is a didone: hairline thins against heavy stems. On a dark ground
-   * those hairlines are the first thing to go, so it is only ever set large
-   * and never below about 18px -- past that it is not elegant, it is broken.
-   * The optical-size axis is pinned high for the same reason: the display cut
-   * has the contrast that makes the face worth using at all.
+   * Newsreader replaced a didone here. The didone was the right *idea* -- this
+   * page publishes a grade on a named person and stands behind it, which is
+   * the register of a printed assay rather than a dashboard -- and the wrong
+   * execution: its hairlines only survive above about 80px, so holding the
+   * look meant setting every headline enormous. The page ended up shouting.
    *
-   * Why a didone on a trading product: this page publishes a grade on someone
-   * and stands behind it. An engraved certificate is the right register, and
-   * no other crypto site looks remotely like one.
+   * Newsreader carries the same editorial voice at 40px that Bodoni needs 130
+   * for, which is what lets the whole scale come back down. Its optical-size
+   * axis is tracked to the rendered size rather than pinned, so a heading and
+   * a hero use genuinely different cuts of the same face.
    */
   .display {
     font-family: var(--font-display);
     font-optical-sizing: auto;
-    font-variation-settings: "opsz" 96;
     font-weight: 400;
-    letter-spacing: -0.02em;
-    line-height: 0.95;
+    letter-spacing: -0.018em;
+    line-height: 1.04;
   }
 
   /* The one italic in the product, for an aside inside a headline. */
   .display-em {
     font-style: italic;
+    font-weight: 400;
     color: var(--amber);
   }
 
@@ -260,8 +259,8 @@
    */
   .bloom {
     text-shadow:
-      0 0 24px var(--amber-glow),
-      0 0 80px color-mix(in oklab, var(--amber) 18%, transparent);
+      0 0 18px var(--amber-glow),
+      0 0 56px color-mix(in oklab, var(--amber) 15%, transparent);
   }
 
   /* A faint engineering grid, behind page chrome only. */
@@ -281,6 +280,29 @@
 
   .term-blink {
     animation: term-blink 1.7s step-end infinite;
+  }
+
+  .plot-line {
+    stroke-dasharray: var(--plot-length, 1200);
+    animation: plot 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+  }
+
+  .plot-fill {
+    animation: plot-fill 0.7s ease-out 0.75s both;
+  }
+
+  /*
+   * Segments settle in sequence rather than appearing at once.
+   *
+   * Each segment carries its own delay through a custom property, so a bar
+   * reads left to right like a needle sweeping. Capped at a tenth of a second
+   * of total stagger: past that it stops being an instrument settling and
+   * starts being something the reader has to wait for.
+   */
+  .segment-in {
+    transform-origin: center;
+    animation: segment-in 0.32s ease-out both;
+    animation-delay: var(--seg-delay, 0ms);
   }
 
   /*
@@ -356,16 +378,40 @@
   to   { offset-distance: 100%; opacity: 0; }
 }
 
-/* The Edge polygon drawing itself once, like a plotter. */
+/*
+ * The Edge polygon drawing itself once, like a plotter.
+ *
+ * The outline is dashed at its own length and the offset walked to zero, so
+ * the line appears to be traced rather than faded in. The fill follows a beat
+ * later: a shape that arrives complete looks like an image, and one that is
+ * drawn looks like a reading being taken.
+ */
 @keyframes plot {
-  from { stroke-dashoffset: var(--plot-length); }
+  from { stroke-dashoffset: var(--plot-length, 1200); }
   to { stroke-dashoffset: 0; }
+}
+
+@keyframes plot-fill {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* A score bar's segments lighting in sequence, left to right. */
+@keyframes segment-in {
+  from { opacity: 0; transform: scaleY(0.25); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .term-blink,
-  .rise {
+  .rise,
+  .plot-line,
+  .plot-fill,
+  .segment-in {
     animation: none;
+  }
+  .plot-line {
+    stroke-dasharray: none;
   }
   .rise {
     opacity: 1;

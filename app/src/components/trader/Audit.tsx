@@ -297,27 +297,27 @@ function Dimension({
   const meta = DIMENSION_META[name];
 
   return (
-    <div className="grid items-center gap-x-6 gap-y-3 px-5 py-5 sm:grid-cols-[56px_1fr_auto]">
-      <span className="font-mono text-[13px] tracking-[0.12em] text-faint">{meta.code}</span>
+    <div className="grid items-center gap-x-5 gap-y-3 px-5 py-4 sm:grid-cols-[48px_1fr_auto]">
+      <span className="font-mono text-[12px] tracking-[0.12em] text-faint">{meta.code}</span>
 
       <div className="min-w-0">
         <div className="flex items-baseline justify-between gap-3 mb-1.5">
-          <span className="text-[19px] font-medium">{meta.label}</span>
+          <span className="text-[16px] font-medium">{meta.label}</span>
           <span
-            className="font-mono text-[22px] sm:hidden"
+            className="font-mono text-[18px] sm:hidden"
             style={{ color: value === null ? "var(--faint)" : bandColor(value) }}
           >
             {score(value)}
           </span>
         </div>
-        <ScoreBar value={value} />
+        <ScoreBar value={value} animate />
         <div className="mt-2.5 text-[13px] leading-snug text-faint">
           {value === null ? unmeasuredReason(name, profile) : meta.blurb}
         </div>
       </div>
 
       <span
-        className="hidden w-16 text-right font-mono text-[30px] leading-none tabular-nums sm:block"
+        className="hidden w-14 text-right font-mono text-[24px] leading-none tabular-nums sm:block"
         style={{ color: value === null ? "var(--faint)" : bandColor(value) }}
       >
         {score(value)}
@@ -475,7 +475,7 @@ function Metric({
         <span className="font-mono text-[10px] text-faint">{n}</span>
       </div>
       <div
-        className="mt-1.5 font-mono text-[22px] leading-none tracking-[-0.03em]"
+        className="mt-2.5 font-mono text-[26px] leading-none tracking-[-0.03em]"
         style={tone ? { color: tone } : undefined}
       >
         {v === EMPTY ? <span className="text-faint">{EMPTY}</span> : v}

@@ -26,15 +26,18 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::{AccountMeta, Instruction};
 use anchor_lang::solana_program::program::invoke_signed;
+use anchor_lang::system_program;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token_interface::{
     self, Burn, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked,
 };
 
 pub mod errors;
+pub mod platform;
 pub mod state;
 
 use errors::VaultError;
+use platform::*;
 use state::*;
 
 declare_id!("CQL7yivcTc7sgTU4JKSYn6NRVbzmNFqChC8wH37sVq34");
@@ -50,6 +53,75 @@ pub mod jupiter {
 pub mod fomo_vault {
     use super::*;
 
+    /// Stand up the FOMV platform: one treasury, two revenue lines.
+    pub fn initialize_platform(
+        ctx: Context<InitializePlatform>,
+        withdraw_fee_bps: u16,
+        listing_fee_lamports: u64,
+    ) -> Result<()> {
+        Platform::validate_fee(withdraw_fee_bps)?;
+
+        let platform = &mut ctx.accounts.platform;
+        platform.bump = ctx.bumps.platform;
+        platform.authority = ctx.accounts.authority.key();
+        platform.treasury = ctx.accounts.treasury.key();
+        platform.withdraw_fee_bps = withdraw_fee_bps;
+        platform.listing_fee_lamports = listing_fee_lamports;
+        platform.vault_count = 0;
+        platform.listings_paused = false;
+        Ok(())
+    }
+
+    /// Reprice the platform's two fees.
+    ///
+    /// This only affects vaults listed *after* the change: live vaults hold
+    /// their own snapshot of the withdrawal fee, so nobody's exit is repriced
+    /// under them.
+    pub fn set_platform_params(
+        ctx: Context<PlatformAuthorityOnly>,
+        withdraw_fee_bps: u16,
+        listing_fee_lamports: u64,
+    ) -> Result<()> {
+        Platform::validate_fee(withdraw_fee_bps)?;
+        let platform = &mut ctx.accounts.platform;
+        platform.withdraw_fee_bps = withdraw_fee_bps;
+        platform.listing_fee_lamports = listing_fee_lamports;
+        Ok(())
+    }
+
+    pub fn set_platform_treasury(ctx: Context<PlatformAuthorityOnly>, treasury: Pubkey) -> Result<()> {
+        ctx.accounts.platform.treasury = treasury;
+        Ok(())
+    }
+
+    pub fn set_platform_authority(ctx: Context<PlatformAuthorityOnly>, authority: Pubkey) -> Result<()> {
+        ctx.accounts.platform.authority = authority;
+        Ok(())
+    }
+
+    /// Halt new listings. Deliberately does not touch live vaults: depositors
+    /// must always be able to leave a vault that is already running.
+    pub fn set_listings_paused(ctx: Context<PlatformAuthorityOnly>, paused: bool) -> Result<()> {
+        ctx.accounts.platform.listings_paused = paused;
+        Ok(())
+    }
+
+    /// Lower one vault's withdrawal fee. A one-way ratchet.
+    ///
+    /// Promotions and grandfathering need a way down; nothing needs a way up.
+    /// Making that asymmetry a program rule rather than a policy means a
+    /// depositor can verify the ceiling on their own exit cost from chain state
+    /// alone, without trusting the operator to keep a promise.
+    pub fn set_vault_withdraw_fee(ctx: Context<SetVaultWithdrawFee>, withdraw_fee_bps: u16) -> Result<()> {
+        let vault = &mut ctx.accounts.vault;
+        require!(
+            withdraw_fee_bps <= vault.withdraw_fee_bps,
+            VaultError::WithdrawFeeNotLowered
+        );
+        vault.withdraw_fee_bps = withdraw_fee_bps;
+        Ok(())
+    }
+
     pub fn initialize_vault(
         ctx: Context<InitializeVault>,
         name: [u8; 32],
@@ -57,12 +129,45 @@ pub mod fomo_vault {
         nav_max_move_bps: u16,
         performance_fee_bps: u16,
         leader_min_bps: u16,
+        max_listing_fee_lamports: u64,
     ) -> Result<()> {
         require!(nav_max_move_bps <= 10_000, VaultError::InvalidBps);
         require!(performance_fee_bps <= 5_000, VaultError::InvalidBps);
         require!(leader_min_bps <= 10_000, VaultError::InvalidBps);
 
+        let platform = &mut ctx.accounts.platform;
+        require!(!platform.listings_paused, VaultError::ListingsPaused);
+
+        // The lister states the most they will pay, so a params change landing
+        // between quoting a listing and signing for it cannot overcharge them.
+        let listing_fee = platform.listing_fee_lamports;
+        require!(
+            listing_fee <= max_listing_fee_lamports,
+            VaultError::ListingFeeTooHigh
+        );
+        if listing_fee > 0 {
+            system_program::transfer(
+                CpiContext::new(
+                    ctx.accounts.system_program.to_account_info(),
+                    system_program::Transfer {
+                        from: ctx.accounts.payer.to_account_info(),
+                        to: ctx.accounts.treasury.to_account_info(),
+                    },
+                ),
+                listing_fee,
+            )?;
+        }
+
+        let withdraw_fee_bps = platform.withdraw_fee_bps;
+        platform.vault_count = platform
+            .vault_count
+            .checked_add(1)
+            .ok_or(VaultError::MathOverflow)?;
+        let platform_key = platform.key();
+
         let vault = &mut ctx.accounts.vault;
+        vault.platform = platform_key;
+        vault.withdraw_fee_bps = withdraw_fee_bps;
         vault.bump = ctx.bumps.vault;
         vault.name = name;
         vault.leader = ctx.accounts.leader.key();
@@ -287,6 +392,43 @@ pub mod fomo_vault {
 
         let supply_before = ctx.accounts.share_mint.supply;
 
+        // The protocol fee moves shares rather than tokens.
+        //
+        // Exits are in-kind, so a fee denominated in tokens would mean paying
+        // the treasury a slice of every memecoin the vault holds and funding an
+        // associated token account for each. Taking the fee in shares instead
+        // costs one transfer, leaves the whole book untouched, and lets the
+        // treasury redeem in-kind on its own schedule through the same claim
+        // path as any other holder.
+        //
+        // Floored, so dust withdrawals round in the depositor's favour rather
+        // than handing the protocol a whole share on a one-share exit.
+        let fee_shares = if ctx.accounts.owner.key() == ctx.accounts.platform.treasury {
+            0
+        } else {
+            mul_div_floor(shares, vault.withdraw_fee_bps as u64, 10_000)?
+        };
+        let burn_shares = shares
+            .checked_sub(fee_shares)
+            .ok_or(VaultError::MathOverflow)?;
+        require!(burn_shares > 0, VaultError::WithdrawalDustsToZero);
+
+        if fee_shares > 0 {
+            token_interface::transfer_checked(
+                CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    TransferChecked {
+                        from: ctx.accounts.owner_shares.to_account_info(),
+                        mint: ctx.accounts.share_mint.to_account_info(),
+                        to: ctx.accounts.treasury_shares.to_account_info(),
+                        authority: ctx.accounts.owner.to_account_info(),
+                    },
+                ),
+                fee_shares,
+                ctx.accounts.share_mint.decimals,
+            )?;
+        }
+
         token_interface::burn(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -296,11 +438,13 @@ pub mod fomo_vault {
                     authority: ctx.accounts.owner.to_account_info(),
                 },
             ),
-            shares,
+            burn_shares,
         )?;
 
+        // Only the burn changes supply; the fee shares stayed outstanding and
+        // still claim against the book, now owned by the treasury.
         let supply_after = supply_before
-            .checked_sub(shares)
+            .checked_sub(burn_shares)
             .ok_or(VaultError::MathOverflow)?;
 
         // The leader cannot walk out from under the depositors following them.
@@ -325,7 +469,7 @@ pub mod fomo_vault {
         let claim = &mut ctx.accounts.claim;
         claim.vault = vault.key();
         claim.owner = ctx.accounts.owner.key();
-        claim.shares_burned = shares;
+        claim.shares_burned = burn_shares;
         claim.total_shares_at_burn = supply_before;
         claim.asset_count_at_burn = vault.asset_count;
         claim.assets_claimed = 0;
@@ -340,7 +484,8 @@ pub mod fomo_vault {
         emit!(WithdrawalOpened {
             vault: claim.vault,
             owner: claim.owner,
-            shares_burned: shares,
+            shares_burned: burn_shares,
+            fee_shares,
             total_shares_at_burn: supply_before,
             assets_to_claim: claim.asset_count_at_burn,
         });
@@ -485,6 +630,47 @@ pub mod fomo_vault {
 // ---------------------------------------------------------------------------
 
 #[derive(Accounts)]
+pub struct InitializePlatform<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    /// CHECK: destination for listing fees and fee shares. Never signs here;
+    /// stored and address-checked wherever value moves to it.
+    pub treasury: UncheckedAccount<'info>,
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + Platform::INIT_SPACE,
+        seeds = [PLATFORM_SEED],
+        bump
+    )]
+    pub platform: Account<'info, Platform>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct PlatformAuthorityOnly<'info> {
+    #[account(constraint = authority.key() == platform.authority @ VaultError::NotPlatformAuthority)]
+    pub authority: Signer<'info>,
+    #[account(mut, seeds = [PLATFORM_SEED], bump = platform.bump)]
+    pub platform: Account<'info, Platform>,
+}
+
+#[derive(Accounts)]
+pub struct SetVaultWithdrawFee<'info> {
+    #[account(constraint = authority.key() == platform.authority @ VaultError::NotPlatformAuthority)]
+    pub authority: Signer<'info>,
+    #[account(seeds = [PLATFORM_SEED], bump = platform.bump)]
+    pub platform: Account<'info, Platform>,
+    #[account(
+        mut,
+        seeds = [VAULT_SEED, vault.leader.as_ref()],
+        bump = vault.bump,
+        constraint = vault.platform == platform.key() @ VaultError::PlatformMismatch
+    )]
+    pub vault: Account<'info, Vault>,
+}
+
+#[derive(Accounts)]
 pub struct InitializeVault<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -492,6 +678,12 @@ pub struct InitializeVault<'info> {
     pub leader: UncheckedAccount<'info>,
     /// CHECK: crank authority, stored and checked on privileged instructions.
     pub manager: UncheckedAccount<'info>,
+
+    #[account(mut, seeds = [PLATFORM_SEED], bump = platform.bump)]
+    pub platform: Account<'info, Platform>,
+    /// CHECK: receives the listing fee. Pinned to the platform's own record.
+    #[account(mut, address = platform.treasury)]
+    pub treasury: UncheckedAccount<'info>,
 
     #[account(
         init,
@@ -514,6 +706,17 @@ pub struct InitializeVault<'info> {
         mint::token_program = token_program,
     )]
     pub share_mint: InterfaceAccount<'info, Mint>,
+
+    /// Opened at listing so that withdrawals never have to fund it. A fee that
+    /// can fail for want of an account is a fee that blocks an exit.
+    #[account(
+        init,
+        payer = payer,
+        associated_token::mint = share_mint,
+        associated_token::authority = treasury,
+        associated_token::token_program = token_program,
+    )]
+    pub treasury_shares: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         init,
@@ -687,10 +890,23 @@ pub struct InitiateWithdrawal<'info> {
     pub owner: Signer<'info>,
     #[account(mut, seeds = [VAULT_SEED, vault.leader.as_ref()], bump = vault.bump)]
     pub vault: Account<'info, Vault>,
+    #[account(
+        seeds = [PLATFORM_SEED],
+        bump = platform.bump,
+        constraint = vault.platform == platform.key() @ VaultError::PlatformMismatch
+    )]
+    pub platform: Account<'info, Platform>,
     #[account(mut, address = vault.share_mint)]
     pub share_mint: InterfaceAccount<'info, Mint>,
     #[account(mut, token::mint = share_mint, token::authority = owner)]
     pub owner_shares: InterfaceAccount<'info, TokenAccount>,
+    #[account(
+        mut,
+        associated_token::mint = share_mint,
+        associated_token::authority = platform.treasury,
+        associated_token::token_program = token_program,
+    )]
+    pub treasury_shares: InterfaceAccount<'info, TokenAccount>,
     #[account(
         init,
         payer = owner,
@@ -804,6 +1020,8 @@ pub struct WithdrawalOpened {
     pub vault: Pubkey,
     pub owner: Pubkey,
     pub shares_burned: u64,
+    /// Shares skimmed to the platform treasury instead of being burned.
+    pub fee_shares: u64,
     pub total_shares_at_burn: u64,
     pub assets_to_claim: u16,
 }

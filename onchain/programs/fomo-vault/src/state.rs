@@ -21,6 +21,10 @@ pub struct Vault {
     /// Display name, zero-padded.
     pub name: [u8; 32],
 
+    /// FOMV platform this vault was listed under. Binds the vault to the
+    /// treasury that its withdrawal fee is paid to.
+    pub platform: Pubkey,
+
     /// The fomo trader being mirrored. Identity only: this key never signs.
     pub leader: Pubkey,
     /// Crank authorised to post NAV and route trades.
@@ -41,6 +45,12 @@ pub struct Vault {
     pub nav_max_move_bps: u16,
 
     pub performance_fee_bps: u16,
+    /// Protocol skim on withdrawals, in bps, taken in shares.
+    ///
+    /// Snapshotted from the platform at listing rather than read live, so the
+    /// fee a depositor agreed to when they deposited is the fee they pay when
+    /// they leave. The authority may ratchet it down, never up.
+    pub withdraw_fee_bps: u16,
     /// Share of the vault the leader must retain while others are invested.
     pub leader_min_bps: u16,
 

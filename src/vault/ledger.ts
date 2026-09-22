@@ -25,6 +25,21 @@ export interface Member {
   lots: Lot[];
 }
 
+/**
+ * The platform's cut, as this ledger sees it.
+ *
+ * Fixed when the vault is listed, mirroring `Vault.withdraw_fee_bps` on-chain,
+ * because a fee a depositor can be repriced into is not a fee they agreed to.
+ * `null` is a vault with no platform attached, which is how every ledger
+ * predating FOMV keeps working unchanged.
+ */
+export interface PlatformTerms {
+  /** Member id that accumulates withdrawal-fee shares. */
+  treasuryId: string;
+  /** Skim on withdrawals, in bps. */
+  withdrawFeeBps: number;
+}
+
 export interface LedgerState {
   totalShares: Amount;
   members: Map<string, Member>;
@@ -32,15 +47,48 @@ export interface LedgerState {
   leaderId: string;
   /** Last time the management fee was accrued. */
   lastAccrualMs: number;
+  platform: PlatformTerms | null;
 }
 
-export function createLedger(leaderId: string, nowMs: number): LedgerState {
+export function createLedger(leaderId: string, nowMs: number, platform: PlatformTerms | null = null): LedgerState {
+  if (platform) assertFeeBps(platform.withdrawFeeBps);
+  const members = new Map([[leaderId, { id: leaderId, lots: [] as Lot[] }]]);
+  if (platform && !members.has(platform.treasuryId)) {
+    members.set(platform.treasuryId, { id: platform.treasuryId, lots: [] });
+  }
   return {
     totalShares: Fx.ZERO,
-    members: new Map([[leaderId, { id: leaderId, lots: [] }]]),
+    members,
     leaderId,
     lastAccrualMs: nowMs,
+    platform,
   };
+}
+
+/**
+ * Lower the platform fee on this vault. A one-way ratchet, matching
+ * `set_vault_withdraw_fee` in the program.
+ *
+ * Enforcing the direction in both places is not redundancy for its own sake:
+ * the on-chain rule is what a depositor can verify, and this one is what stops
+ * the app from building a transaction that would revert.
+ */
+export function lowerPlatformFee(state: LedgerState, withdrawFeeBps: number): void {
+  if (!state.platform) throw new Error("lowerPlatformFee: vault has no platform terms");
+  assertFeeBps(withdrawFeeBps);
+  if (withdrawFeeBps > state.platform.withdrawFeeBps) {
+    throw new Error(
+      `lowerPlatformFee: ${withdrawFeeBps}bps is above the current ${state.platform.withdrawFeeBps}bps; ` +
+        `the fee may only be lowered`,
+    );
+  }
+  state.platform.withdrawFeeBps = withdrawFeeBps;
+}
+
+function assertFeeBps(bps: number): void {
+  if (!Number.isInteger(bps) || bps < 0 || bps > 10_000) {
+    throw new Error(`withdrawFeeBps must be an integer within 0..10000, got ${bps}`);
+  }
 }
 
 function member(state: LedgerState, id: string): Member {
@@ -130,6 +178,9 @@ export interface WithdrawResult {
   /** Shares transferred to the leader as crystallised performance fee. */
   feeShares: Amount;
   performanceFeeUsd: Amount;
+  /** Shares skimmed to the platform treasury. */
+  platformFeeShares: Amount;
+  platformFeeUsd: Amount;
   levyUsd: Amount;
   payoutUsd: Amount;
   navPerShare: Amount;
@@ -178,6 +229,25 @@ export function withdraw(
 
   const nav = navPerShare(state, equityUsd);
 
+  // The platform fee comes off the top, before anything else touches the
+  // shares, because that is where the program takes it: `initiate_withdrawal`
+  // skims it from the presented amount and burns only the remainder. Charging
+  // it anywhere else in this sequence would make the statement disagree with
+  // the chain.
+  //
+  // Floored, matching `mul_div_floor` in the program: the house rounds down,
+  // so a dust exit is never swallowed whole by its own fee.
+  const platformFeeBps =
+    state.platform && memberId !== state.platform.treasuryId ? state.platform.withdrawFeeBps : 0;
+  const platformFeeShares =
+    platformFeeBps > 0 ? Fx.mulDivFloor(shares, BigInt(platformFeeBps) * Fx.ONE, 10_000n * Fx.ONE) : Fx.ZERO;
+  const redeemable = shares - platformFeeShares;
+  if (redeemable <= Fx.ZERO) {
+    throw new Error(
+      `withdraw: ${Fx.toString(shares)} shares at ${platformFeeBps}bps leaves nothing after the platform fee`,
+    );
+  }
+
   // Consume lots oldest-first, charging the performance fee per lot against
   // that lot's own high-water mark.
   let remaining = shares;
@@ -205,7 +275,9 @@ export function withdraw(
 
   // Round the fee's share count up so the pool is never short-changed.
   const feeShares = performanceFeeUsd > Fx.ZERO ? Fx.mulDivCeil(performanceFeeUsd, Fx.ONE, nav) : Fx.ZERO;
-  const cappedFeeShares = Fx.min(feeShares, shares);
+  // Capped against what is left after the platform fee, not against the gross:
+  // the two fees are claims on the same shares and must not jointly exceed them.
+  const cappedFeeShares = Fx.min(feeShares, redeemable);
 
   if (cappedFeeShares > Fx.ZERO) {
     // The leader's fee shares carry the current NAV as their own high-water
@@ -213,7 +285,18 @@ export function withdraw(
     member(state, state.leaderId).lots.push({ shares: cappedFeeShares, hwmNav: nav, depositedAtMs: nowMs });
   }
 
-  const redeemedShares = shares - cappedFeeShares;
+  if (platformFeeShares > Fx.ZERO && state.platform) {
+    // Same treatment as the performance fee: the treasury ends up owning more
+    // of the pool rather than being paid out of it, so no position has to be
+    // sold to settle a fee and NAV per share does not move on the fee event.
+    member(state, state.platform.treasuryId).lots.push({
+      shares: platformFeeShares,
+      hwmNav: nav,
+      depositedAtMs: nowMs,
+    });
+  }
+
+  const redeemedShares = redeemable - cappedFeeShares;
   const grossUsd = Fx.mul(redeemedShares, nav);
   const levyUsd = Fx.bps(grossUsd, levyBps({ equityUsd, investedUsd, policy }));
   const payoutUsd = grossUsd - levyUsd;
@@ -225,6 +308,8 @@ export function withdraw(
     sharesBurned: redeemedShares,
     feeShares: cappedFeeShares,
     performanceFeeUsd,
+    platformFeeShares,
+    platformFeeUsd: Fx.mul(platformFeeShares, nav),
     levyUsd,
     payoutUsd,
     navPerShare: nav,

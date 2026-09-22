@@ -42,4 +42,18 @@ pub enum VaultError {
     MathOverflow,
     #[msg("Basis-point value must not exceed 10000")]
     InvalidBps,
+    #[msg("Withdrawal fee exceeds the protocol ceiling")]
+    WithdrawFeeTooHigh,
+    #[msg("The platform withdrawal fee may only be lowered, never raised")]
+    WithdrawFeeNotLowered,
+    #[msg("Only the platform authority may perform this action")]
+    NotPlatformAuthority,
+    #[msg("New listings are paused")]
+    ListingsPaused,
+    #[msg("Listing fee is higher than the maximum the lister authorised")]
+    ListingFeeTooHigh,
+    #[msg("This vault belongs to a different platform")]
+    PlatformMismatch,
+    #[msg("Withdrawal is too small to leave anything after the protocol fee")]
+    WithdrawalDustsToZero,
 }

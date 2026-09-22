@@ -30,11 +30,14 @@ export interface TokenInfo {
 /**
  * The FOMV token.
  *
- * Blank until the mint exists. Nothing renders while `address` is empty --
- * deliberately, because a contract address is not a thing to approximate.
+ * Verified against both of the price sources this app already uses before it
+ * was put here: GeckoTerminal and DexScreener both resolve it to Fomo Vault,
+ * symbol FOMV, six decimals, trading on pump.fun. A contract address is not a
+ * thing to take on trust, least of all from a chat message, and checking it
+ * costs one request against a feed the product was already calling.
  */
 export const TOKEN: TokenInfo = {
-  address: "",
+  address: "3YfBU5he5b6pJUFoztLR9N1YsvMYMMXU5GGdGaX3pump",
   symbol: "FOMV",
   explorer: "https://solscan.io/token/{address}",
 };
@@ -46,7 +49,7 @@ export interface Social {
 
 /** Empty entries are skipped, so an unfilled one never ships as a dead link. */
 export const SOCIALS: Social[] = [
-  { name: "X", href: "" },
+  { name: "X", href: "https://x.com/fomv_agency" },
   { name: "Telegram", href: "" },
 ];
 

@@ -100,9 +100,14 @@ header.top {
   flex-wrap: wrap;
 }
 
-.brand { display: flex; align-items: baseline; gap: 0.6rem; }
+.brand { display: flex; align-items: center; gap: 0.6rem; }
+.brand .logo { height: 36px; width: 36px; display: block; flex: none; }
 .brand .mark { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
 .brand .sub { color: var(--text-faint); font-size: 0.8rem; }
+
+@media (max-width: 520px) {
+  .brand .sub { display: none; }
+}
 
 .who { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
 .who .addr { font-family: var(--mono); color: var(--text-dim); }

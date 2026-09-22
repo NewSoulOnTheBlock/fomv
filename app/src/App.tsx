@@ -46,6 +46,21 @@ function Header() {
   return (
     <header className="top">
       <div className="brand">
+        {/*
+          The shield alone, not the full lockup. The lockup carries its own
+          "FOMO VAULT" wordmark, which at header size renders as an illegible
+          smudge -- so the name is set in type instead, where it stays sharp at
+          any size. The full lockup is still shipped for share cards.
+        */}
+        <img
+          className="logo"
+          src="/mark-72.png"
+          srcSet="/mark-72.png 1x, /mark-144.png 2x"
+          alt=""
+          width={36}
+          height={36}
+          decoding="async"
+        />
         <span className="mark">FOMV</span>
         <span className="sub">Fear of Missing Vault</span>
       </div>

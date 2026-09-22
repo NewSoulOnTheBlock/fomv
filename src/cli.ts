@@ -7,6 +7,11 @@ import { SolanaLeaderWatcher } from "./chains/solana/watcher.js";
 import { emptyVaultState } from "./mirror/sizing.js";
 import { makePolicy } from "./policy.js";
 import { initialState, tick } from "./runner.js";
+import { DEFAULT_SHORTLIST, scoreCandidate, shortlist } from "./platform/shortlist.js";
+import { buildTraderProfile } from "./platform/profile.js";
+import { LAUNCH_ROSTER } from "./platform/roster.js";
+import { mkdir, writeFile } from "node:fs/promises";
+import { SolanaLeaderWatcher as Watcher } from "./chains/solana/watcher.js";
 import { tokenKey } from "./types.js";
 
 const args = parseArgs(process.argv.slice(2));
@@ -53,6 +58,10 @@ async function main() {
       return simulate(1);
     case "watch":
       return watch();
+    case "score":
+      return score();
+    case "profile":
+      return profile();
     default:
       return help();
   }
@@ -177,9 +186,180 @@ ${bold("fomo-vaults")} — pooled copy-trading vaults over fomo leader wallets
             Poll continuously. Dry-run unless --live is set AND
             SOLANA_VAULT_PRIVATE_KEY is present.
 
-  ${dim("env: SOLANA_RPC_URL, LEADER_ADDRESS, JUPITER_API_URL, JUPITER_API_KEY,")}
+  ${bold("profile")}   [--candidates <addr,...>] [--pages 12] [--out state/profiles]
+            Build full ability profiles (Edge Score, 5 dimensions, 10 metrics)
+            and write them as JSON for the dashboard to serve.
+
+  ${bold("score")}     --candidates <addr,addr,...> [--pages 8] [--seats 3] [--limit 25]
+            Grade candidate leaders on copyability and propose a FOMV roster.
+            Read-only. Needs an RPC that serves batched transaction reads.
+
+  ${dim("env: SOLANA_RPC_URL, SOLANA_TX_RPC_URL, LEADER_ADDRESS, JUPITER_API_URL,")}
+  ${dim("     JUPITER_API_KEY,")}
   ${dim("     SOLANA_VAULT_PRIVATE_KEY (base58 or JSON array), MODE=live")}
 `);
+}
+
+/**
+ * Grade candidate leaders and propose a roster.
+ *
+ * Read-only and never signs anything: this is the step that happens before a
+ * vault exists, so there is nothing yet to be careful with.
+ */
+async function score() {
+  const candidates = (flags.candidates ?? LEADER)
+    .split(",")
+    .map((a) => a.trim())
+    .filter(Boolean);
+
+  if (candidates.length === 0) {
+    console.error("score: pass --candidates <addr,addr,...> or set LEADER_ADDRESS");
+    process.exit(1);
+  }
+
+  const conn = new Connection(RPC, "confirmed");
+  const txConn = TX_RPC === RPC ? conn : new Connection(TX_RPC, "confirmed");
+  const data = new SolanaMarketData(conn);
+  const maxPages = Number(flags.pages ?? 8);
+  const seats = Number(flags.seats ?? DEFAULT_SHORTLIST.seats);
+
+  console.log(`\n${bold("Scoring")} ${candidates.length} candidate(s) over up to ${maxPages} pages each\n`);
+
+  const scored: { address: string; score: Awaited<ReturnType<typeof scoreCandidate>>["score"] }[] = [];
+  for (const address of candidates) {
+    process.stdout.write(`  ${address.slice(0, 8)}…  `);
+    try {
+      const res = await scoreCandidate({
+        address,
+        watcher: new Watcher(txConn, address, data, {
+          limit: Number(flags.limit ?? 25),
+          batchSize: Number(flags.batch ?? 5),
+          throttleMs: Number(flags.throttle ?? 150),
+        }),
+        data,
+        maxPages,
+        onPage: (_n, total) => process.stdout.write(`  ${address.slice(0, 8)}…  ${total} swaps`),
+      });
+      console.log(
+        `  ${address.slice(0, 8)}…  ${String(res.trades).padStart(4)} swaps, ` +
+          `${res.coverage} tokens priced, book ${res.equityUsd === null ? "unknown" : usd(res.equityUsd)} ` +
+          `→ ${dim(res.score.grade)}`,
+      );
+      if (res.truncated) console.log(`        ${dim("history truncated -- " + res.truncated)}`);
+      scored.push({ address, score: res.score });
+    } catch (err) {
+      console.log(`  ${address.slice(0, 8)}…  ${dim(`failed: ${String(err)}`)}`);
+    }
+  }
+
+  if (scored.length === 0) {
+    console.error("\nNo candidate could be scored. Check SOLANA_TX_RPC_URL; free endpoints refuse batched reads.");
+    process.exit(1);
+  }
+
+  const results = shortlist(scored, { ...DEFAULT_SHORTLIST, seats });
+
+  console.log(`\n${bold("Roster proposal")}  ${seats} seat(s)\n`);
+  for (const c of results) {
+    const mark = c.verdict === "list" ? "LIST " : c.verdict === "watch" ? "WATCH" : "PASS ";
+    const composite = c.score.composite === null ? "  — " : c.score.composite.toFixed(0).padStart(4);
+    const cap = c.score.capacityUsd === null ? "unknown" : usd(c.score.capacityUsd);
+    console.log(`  ${bold(mark)} ${c.address}`);
+    console.log(`        grade ${c.score.grade.padEnd(18)} composite ${composite}    capacity ${cap}`);
+    const comp = c.score.components;
+    const part = (label: string, v: number | null) =>
+      `${label} ${v === null ? " -- " : v.toFixed(0).padStart(3)}`;
+    console.log(
+      `        ${dim(
+        [
+          part("perf", comp.performance),
+          part("capacity", comp.capacity),
+          part("latency", comp.latency),
+          part("process", comp.process),
+          part("hygiene", comp.hygiene),
+        ].join("   "),
+      )}`,
+    );
+    const raw = c.score.raw;
+    console.log(
+      `        ${dim(
+        `${raw.episodes} episodes, ${raw.performance.closedEpisodes} closed  ` +
+          `win ${(raw.performance.winRate * 100).toFixed(0)}%  ` +
+          `net $${raw.performance.netPnlUsd.toFixed(0)}  ` +
+          `fee drag ${raw.performance.feeDragBps.toFixed(0)}bps`,
+      )}`,
+    );
+    for (const r of c.reasons) console.log(`        ${dim("· " + r)}`);
+    console.log("");
+  }
+
+  console.log(
+    dim(
+      "  Capacity is computed against today's pools, not the pools at the time of each\n" +
+        "  trade. Read it as an order of magnitude.\n",
+    ),
+  );
+}
+
+/**
+ * Compute ability profiles and write them to `state/profiles/`.
+ *
+ * Written to disk rather than computed on request because a profile costs
+ * hundreds of RPC calls and several minutes. The dashboard reads the file; a
+ * scheduled run of this command is what keeps it fresh. Making that a
+ * deliberate step also means the numbers on the site are reproducible -- there
+ * is a file you can diff.
+ */
+async function profile() {
+  const addresses = (flags.candidates ?? LAUNCH_ROSTER.map((r) => r.leader).join(","))
+    .split(",")
+    .map((a) => a.trim())
+    .filter(Boolean);
+
+  if (addresses.length === 0) {
+    console.error("profile: no addresses; pass --candidates or add entries to src/platform/roster.ts");
+    process.exit(1);
+  }
+
+  const conn = new Connection(RPC, "confirmed");
+  const txConn = TX_RPC === RPC ? conn : new Connection(TX_RPC, "confirmed");
+  const data = new SolanaMarketData(conn);
+  const outDir = flags.out ?? "state/profiles";
+  const maxPages = Number(flags.pages ?? 12);
+  await mkdir(outDir, { recursive: true });
+
+  for (const address of addresses) {
+    const handle = LAUNCH_ROSTER.find((r) => r.leader === address)?.handle;
+    process.stdout.write(`  ${handle ?? address.slice(0, 8)}  `);
+    try {
+      const res = await buildTraderProfile({
+        address,
+        handle,
+        watcher: new Watcher(txConn, address, data, {
+          limit: Number(flags.limit ?? 100),
+          batchSize: Number(flags.batch ?? 5),
+          throttleMs: Number(flags.throttle ?? 150),
+        }),
+        data,
+        maxPages,
+        onPage: (_p, total) => process.stdout.write(`  ${handle ?? address.slice(0, 8)}  ${total} swaps`),
+      });
+
+      const file = `${outDir}/${address}.json`;
+      await writeFile(file, JSON.stringify(res, null, 2));
+      const p = res.profile;
+      console.log(
+        `  ${(handle ?? address.slice(0, 8)).padEnd(16)} ` +
+          `edge ${p.edgeScore === null ? " -- " : p.edgeScore.toFixed(0).padStart(3)}  ` +
+          `${p.grade.padEnd(18)} ${res.provenance.trades} swaps, ` +
+          `${p.core.closedEpisodes} closed  -> ${file}`,
+      );
+      for (const g of p.gaps) console.log(`      ${dim("gap: " + g)}`);
+      for (const f of p.flags) console.log(`      ${dim("flag: " + f)}`);
+    } catch (err) {
+      console.log(`  ${address.slice(0, 8)}  ${dim(`failed: ${String(err)}`)}`);
+    }
+  }
 }
 
 function requireLeader() {

@@ -1,18 +1,24 @@
-import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { PrivyProvider, usePrivy, useSolanaWallets } from "@privy-io/react-auth";
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
+import { PrivyProvider, useDelegatedActions, usePrivy, useSolanaWallets } from "@privy-io/react-auth";
 
 /**
- * Authentication, behind one small interface.
+ * Authentication and delegation, behind one small interface.
  *
- * Two reasons this exists rather than calling `usePrivy()` from components.
+ * # Why this exists rather than calling Privy from components
  *
- * First, the dashboard must work without Privy configured. Sign-in is only
- * needed to move money; reading a trader's metrics is not, and a missing app
- * id should not blank the product. Privy hooks throw outside their provider,
- * so the choice has to be made above the components that consume it.
+ * The dashboard must work without Privy configured. Reading a trader's metrics
+ * needs no account; only following one does. Privy hooks throw outside their
+ * provider, so the choice has to be made above the components that consume it.
  *
- * Second, nothing in the UI then depends on Privy's API surface. Swapping the
- * auth provider means rewriting this file.
+ * It also keeps Privy's API surface in one file, which matters more now that
+ * delegation is part of the product rather than just sign-in.
+ *
+ * # What delegation means here
+ *
+ * Granting delegation lets FOMV's server sign *trades* for the user's embedded
+ * wallet. It does not hand over the key and does not let FOMV move funds to an
+ * address of its choosing. The user can revoke at any time, and revocation is
+ * immediate regardless of what the server believes.
  */
 
 export interface Auth {
@@ -20,13 +26,27 @@ export interface Auth {
   configured: boolean;
   ready: boolean;
   authenticated: boolean;
-  /** Human-readable identity for the header, if any. */
   displayName: string | null;
   /** The user's Solana address, once an embedded wallet exists. */
   walletAddress: string | null;
+  /** True when this server may sign trades for the wallet. */
+  isDelegated: boolean;
   login: () => void;
   logout: () => void;
+  /** Prompt the user to authorise trade signing. */
+  delegate: () => Promise<void>;
+  /**
+   * Withdraw that authorisation.
+   *
+   * Privy revokes *every* wallet the user has delegated, not just this one, so
+   * the UI says as much rather than implying a narrower action.
+   */
+  revoke: () => Promise<void>;
 }
+
+const notConfigured = async () => {
+  throw new Error("Privy is not configured");
+};
 
 const UNCONFIGURED: Auth = {
   configured: false,
@@ -34,8 +54,11 @@ const UNCONFIGURED: Auth = {
   authenticated: false,
   displayName: null,
   walletAddress: null,
+  isDelegated: false,
   login: () => {},
   logout: () => {},
+  delegate: notConfigured,
+  revoke: notConfigured,
 };
 
 const AuthContext = createContext<Auth>(UNCONFIGURED);
@@ -46,7 +69,7 @@ export function useAuth(): Auth {
 
 export function AuthProvider({ appId, children }: { appId: string | undefined; children: ReactNode }) {
   // A conditional *component*, not a conditional hook: both branches render a
-  // provider, and whichever one mounts keeps its hooks for its whole lifetime.
+  // provider, and whichever mounts keeps its hooks for its whole lifetime.
   if (!appId) {
     return <AuthContext.Provider value={UNCONFIGURED}>{children}</AuthContext.Provider>;
   }
@@ -60,12 +83,11 @@ export function AuthProvider({ appId, children }: { appId: string | undefined; c
           theme: "dark",
           accentColor: "#4ade80",
           landingHeader: "Sign in to FOMV",
-          loginMessage: "Deposit into a vault that mirrors a curated fomo trader.",
+          loginMessage: "Follow a curated trader with your own wallet.",
         },
         embeddedWallets: {
-          // Solana only. The vault program, the share mint and every asset the
-          // book holds are Solana; an Ethereum wallet would be a second
-          // address with nothing to do here.
+          // Solana only. Every asset the strategy touches is Solana; an
+          // Ethereum wallet would be a second address with nothing to do.
           solana: { createOnLogin: "users-without-wallets" },
         },
       }}
@@ -78,6 +100,33 @@ export function AuthProvider({ appId, children }: { appId: string | undefined; c
 function PrivyBridge({ children }: { children: ReactNode }) {
   const { ready, authenticated, user, login, logout } = usePrivy();
   const { wallets } = useSolanaWallets();
+  const { delegateWallet, revokeWallets } = useDelegatedActions();
+
+  const address = wallets[0]?.address ?? null;
+
+  // Privy's user record is the authority on whether delegation stands. Reading
+  // it here rather than tracking a local flag means the UI cannot drift out of
+  // step with what the server is actually permitted to do.
+  const isDelegated = useMemo(
+    () =>
+      Boolean(
+        address &&
+          user?.linkedAccounts?.some(
+            (a) => (a as { address?: string; delegated?: boolean }).address === address &&
+              (a as { delegated?: boolean }).delegated === true,
+          ),
+      ),
+    [user, address],
+  );
+
+  const delegate = useCallback(async () => {
+    if (!address) throw new Error("No Solana wallet to delegate yet");
+    await delegateWallet({ address, chainType: "solana" });
+  }, [address, delegateWallet]);
+
+  const revoke = useCallback(async () => {
+    await revokeWallets();
+  }, [revokeWallets]);
 
   const value = useMemo<Auth>(
     () => ({
@@ -91,11 +140,14 @@ function PrivyBridge({ children }: { children: ReactNode }) {
         user?.discord?.username ??
         user?.farcaster?.username ??
         (authenticated ? "signed in" : null),
-      walletAddress: wallets[0]?.address ?? null,
+      walletAddress: address,
+      isDelegated,
       login: () => void login(),
       logout: () => void logout(),
+      delegate,
+      revoke,
     }),
-    [ready, authenticated, user, wallets, login, logout],
+    [ready, authenticated, user, address, isDelegated, login, logout, delegate, revoke],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

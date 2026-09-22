@@ -44,9 +44,10 @@ export const LAUNCH_ROSTER: RosterCandidate[] = [
       },
     ],
     note:
-      "Scored 2026-09-22 over the most recent ~1,200 signatures: grade A, composite 91, " +
-      "capacity ~$1.6m against a $15.9m book. High-frequency; the window covered under a " +
-      "day of activity.",
+      "Scored 2026-09-22 over ~4,500 signatures spanning 5.6 days: Edge Score 54 (grade D) " +
+      "from 56 complete round trips, 53.6% win rate, 1.30 profit factor. An earlier 18-hour " +
+      "sample read far better (79% win, 2.16 profit factor) and was flattering - it caught " +
+      "one good afternoon.",
   },
 ];
 

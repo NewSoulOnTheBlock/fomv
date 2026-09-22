@@ -1,4 +1,5 @@
-import { Connection, Keypair, VersionedTransaction } from "@solana/web3.js";
+import { Connection, VersionedTransaction } from "@solana/web3.js";
+import type { WalletSigner } from "./signer.js";
 import type { ExecutionContext, Executor } from "../adapter.js";
 import type { ExecutionResult, MirrorIntent, TokenRef } from "../../types.js";
 import type { SolanaMarketData } from "./marketdata.js";
@@ -30,8 +31,14 @@ export class JupiterExecutor implements Executor {
   constructor(
     private readonly conn: Connection,
     private readonly data: SolanaMarketData,
-    /** Null keeps the executor permanently in dry-run: it can quote, never sign. */
-    private readonly signer: Keypair | null,
+    /**
+     * Null keeps the executor permanently in dry-run: it can quote, never sign.
+     *
+     * An interface rather than a Keypair, so the same executor serves a solo
+     * bot holding its own key and a subscriber who delegated signing without
+     * surrendering one.
+     */
+    private readonly signer: WalletSigner | null,
     private readonly opts: JupiterOptions = {},
   ) {}
 
@@ -152,7 +159,7 @@ export class JupiterExecutor implements Executor {
       headers: { "Content-Type": "application/json", ...this.headers },
       body: JSON.stringify({
         quoteResponse: q,
-        userPublicKey: this.signer.publicKey.toBase58(),
+        userPublicKey: this.signer.address,
         wrapAndUnwrapSol: true,
         dynamicComputeUnitLimit: true,
         prioritizationFeeLamports: this.opts.maxPriorityLamports ?? 1_000_000,
@@ -168,8 +175,11 @@ export class JupiterExecutor implements Executor {
     }
 
     const { swapTransaction } = (await swapRes.json()) as { swapTransaction: string };
-    const tx = VersionedTransaction.deserialize(Buffer.from(swapTransaction, "base64"));
-    tx.sign([this.signer]);
+    const unsigned = VersionedTransaction.deserialize(Buffer.from(swapTransaction, "base64"));
+    // Signing may be remote and may refuse: a subscriber can revoke delegation
+    // between the quote and the signature, and that is a normal outcome rather
+    // than a fault. The error propagates so the runner can drop them cleanly.
+    const tx = await this.signer.sign(unsigned);
 
     const sig = await this.conn.sendRawTransaction(tx.serialize(), {
       skipPreflight: false,

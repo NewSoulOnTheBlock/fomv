@@ -4,6 +4,7 @@ import type { ChainAdapter } from "./chains/adapter.js";
 import { JupiterExecutor } from "./chains/solana/jupiter.js";
 import { SolanaMarketData } from "./chains/solana/marketdata.js";
 import { SolanaLeaderWatcher } from "./chains/solana/watcher.js";
+import { LocalKeypairSigner } from "./chains/solana/signer.js";
 import { emptyVaultState } from "./mirror/sizing.js";
 import { makePolicy } from "./policy.js";
 import { initialState, tick } from "./runner.js";
@@ -32,7 +33,7 @@ function buildAdapter(): ChainAdapter {
   const txConn = TX_RPC === RPC ? conn : new Connection(TX_RPC, "confirmed");
   const data = new SolanaMarketData(conn);
   const key = process.env.SOLANA_VAULT_PRIVATE_KEY;
-  const signer = LIVE && key ? Keypair.fromSecretKey(decodeKey(key)) : null;
+  const signer = LIVE && key ? new LocalKeypairSigner(Keypair.fromSecretKey(decodeKey(key))) : null;
   return {
     chain: "solana",
     watcher: new SolanaLeaderWatcher(txConn, LEADER, data, {

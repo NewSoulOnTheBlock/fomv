@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Dashboard } from "./components/Dashboard";
 import { SignInButton } from "./components/SignInButton";
-import { VaultPanel } from "./components/VaultPanel";
+import { FollowPanel } from "./components/FollowPanel";
 import { useAuth } from "./lib/auth";
 import type { AppData, RosterEntry, TraderProfile } from "./lib/types";
-import { bps, EMPTY, pct, relative, score, shortAddress, usd } from "./lib/format";
+import { DEFAULT_FEE_TERMS } from "@engine/follow/fees.js";
+import { bps, pct, relative, score, shortAddress, usd } from "./lib/format";
 import { bandOf } from "./lib/format";
 
 export function App() {
@@ -91,18 +92,10 @@ function RosterView({ data, onOpen }: { data: AppData; onOpen: (leader: string) 
 
   return (
     <div>
-      {!data.platform.programDeployed && (
-        <div className="banner">
-          <strong>Preview.</strong> The vault program is not deployed, so deposits and withdrawals
-          cannot settle yet. Every fee shown is computed by the same code the protocol runs, and the
-          trader metrics are built from real on-chain history — only the settlement step is missing.
-        </div>
-      )}
-
       <h2 style={{ marginTop: 0 }}>The roster</h2>
       <p className="muted small" style={{ marginTop: "-0.5rem" }}>
-        {data.platform.maxLiveVaults} seats. Traders pay {data.platform.listingFeeSol} SOL to be
-        listed; FOMV takes {bps(data.platform.withdrawFeeBps)} on withdrawal and nothing on deposit.
+        Follow a curated trader with your own wallet. Their swaps are mirrored into your account by
+        portfolio weight — FOMV never holds your funds and cannot move them.
       </p>
 
       <div className="grid" style={{ marginTop: "1rem" }}>
@@ -148,8 +141,8 @@ function VaultCard({
           <div className="v">{pct(profile?.profile.core.maxDrawdown ?? null)}</div>
         </div>
         <div>
-          <div className="k">Withdrawal fee</div>
-          <div className="v">{entry.withdrawFeeBps === null ? EMPTY : bps(entry.withdrawFeeBps)}</div>
+          <div className="k">Trade fee</div>
+          <div className="v">{bps(DEFAULT_FEE_TERMS.tradeFeeBps)}</div>
         </div>
       </div>
       {entry.note && (
@@ -191,12 +184,12 @@ function VaultView({ data, leader, onBack }: { data: AppData; leader: string; on
           </p>
           <div className="grid cols-2" style={{ marginTop: "1rem" }}>
             <div>
-              <div className="faint small">Withdrawal fee</div>
-              <div className="mono">{entry.withdrawFeeBps === null ? EMPTY : bps(entry.withdrawFeeBps)}</div>
+              <div className="faint small">Custody</div>
+              <div className="mono">self</div>
             </div>
             <div>
-              <div className="faint small">Performance fee</div>
-              <div className="mono">{bps(entry.performanceFeeBps)}</div>
+              <div className="faint small">Deposit / withdrawal fee</div>
+              <div className="mono">none</div>
             </div>
           </div>
           {entry.elsewhere?.map((e) => (
@@ -211,7 +204,7 @@ function VaultView({ data, leader, onBack }: { data: AppData; leader: string; on
           )}
         </div>
 
-        <VaultPanel vault={entry} platform={data.platform} />
+        <FollowPanel vault={entry} />
       </div>
 
       {profile && <Dashboard data={profile} />}

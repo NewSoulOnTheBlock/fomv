@@ -223,6 +223,41 @@
     -webkit-backdrop-filter: blur(20px) saturate(140%);
   }
 
+  /*
+   * A card in the deck. Opaque, unlike `material`.
+   *
+   * `material` is translucent and blurs what is behind it, which is right for
+   * a panel sitting on the page and catastrophic for a stack: the cards behind
+   * show straight through the one in front, so five overlapping pentagons
+   * render as one unreadable tangle. A deck needs cards you cannot see
+   * through, and the depth has to come from the shadow instead.
+   */
+  .deck-card {
+    background: linear-gradient(180deg, #17171d 0%, #0f0f13 100%);
+    border: 1px solid var(--border);
+    box-shadow:
+      inset 0 1px 0 var(--highlight),
+      0 24px 60px -24px rgba(0, 0, 0, 0.95),
+      0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+
+  /*
+   * The card being read.
+   *
+   * Lifted by light rather than by size: the cards behind are already scaled
+   * and dimmed, so making this one bigger as well would push it out of the
+   * fan. A brighter edge and a violet throw underneath is enough, and it
+   * leaves the geometry of the hand intact.
+   */
+  .deck-card-focused {
+    background: linear-gradient(180deg, #1d1d25 0%, #131319 100%);
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 44px 100px -34px rgba(0, 0, 0, 1),
+      0 0 80px -24px var(--brand-glow);
+  }
+
   /* A recessed one, for things sitting inside a raised surface. */
   .material-inset {
     background: rgba(0, 0, 0, 0.28);

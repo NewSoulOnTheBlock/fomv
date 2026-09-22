@@ -4,7 +4,8 @@ import { ArrowRight } from "lucide-react";
 import { DEFAULT_FEE_TERMS } from "@engine/follow/fees.js";
 import { LISTING_TERMS } from "@engine/platform/listing.js";
 import { EdgeGlyph } from "@/components/viz/EdgePentagon";
-import { MirrorDiagram } from "@/components/viz/MirrorDiagram";
+import { TraderDeck } from "@/components/roster/TraderDeck";
+import { DataSources } from "@/components/DataSources";
 import { Sparkline } from "@/components/viz/Sparkline";
 import { FactLine, Panel, PanelBody, SectionRule } from "@/components/term";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,7 @@ export function RosterPage({ data }: { data: AppData }) {
 
   return (
     <div>
-      <Masthead />
+      <Masthead roster={data.roster} profiles={profiles} />
 
       <SectionRule index="01" aside={`${data.roster.length} of ${LISTING_TERMS.maxRoster} seats`}>
         The roster
@@ -88,57 +89,36 @@ export function RosterPage({ data }: { data: AppData }) {
   );
 }
 
-function Masthead() {
+function Masthead({
+  roster,
+  profiles,
+}: {
+  roster: RosterEntry[];
+  profiles: Record<string, TraderProfile>;
+}) {
   return (
-    <section className="border-b border-border pb-16 pt-14 md:pt-20">
-      {/*
-        The headline gets the full measure rather than a column beside the
-        diagram. At this size a 500px column breaks "Follow a trader" across
-        two lines and the whole thing reads as text that did not fit; given
-        the width it breaks where it was written to break.
-      */}
-      <div className="rise step-1">
-        <h1 className="max-w-[18ch] text-[clamp(2.5rem,5.4vw,4.25rem)] font-semibold">
+    <section className="border-b border-separator pb-16 pt-14 md:pt-20">
+      <div className="rise step-1 text-center">
+        <h1 className="mx-auto max-w-[19ch] text-[clamp(2.5rem,5.4vw,4.25rem)] font-semibold">
           Follow a trader who has been <span className="text-gradient">measured</span>.
         </h1>
+        <p className="mx-auto mt-7 max-w-2xl text-[17px] leading-[1.6] text-muted-foreground">
+          A short roster, audited on five dimensions of skill rather than ranked by profit. Their
+          swaps are mirrored into <span className="text-foreground">your</span> wallet at their
+          portfolio weight — so your position scales to your balance, not theirs.
+        </p>
       </div>
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] lg:items-center">
-        <div className="rise step-2">
-          <p className="text-[17px] leading-[1.6] text-muted-foreground">
-            A short roster, audited on five dimensions of skill rather than ranked by profit.
-            Authorise one of them and their swaps are mirrored into{" "}
-            <span className="text-foreground">your</span> wallet at their portfolio weight — so
-            your position scales to your balance, not theirs.
-          </p>
+      {/* The deck is the product: the people, and how few of them there are. */}
+      <TraderDeck roster={roster} profiles={profiles} className="rise step-2 mt-10" />
 
-        </div>
-
-        {/*
-          Hidden below md. The drawing is 760 units wide and its labels are set
-          at 9px; at phone width it renders those at under 5px, which is not a
-          smaller diagram but an unreadable one. The four steps below say the
-          same thing in words, which is the right medium at that size.
-        */}
-        <div className="rise step-3 relative hidden md:block">
-          <div
-            className="pointer-events-none absolute -inset-y-16 inset-x-0 -z-10 opacity-70"
-            style={{
-              background: "radial-gradient(60% 60% at 50% 50%, var(--brand-glow), transparent 70%)",
-            }}
-            aria-hidden
-          />
-          <MirrorDiagram />
-        </div>
-      </div>
-
-      {/* The three numbers that answer "what does this cost me", given a band
-          of their own rather than squeezed beside the copy. */}
-      <div className="rise step-4 material term-divided mt-14 grid rounded-xl sm:grid-cols-3">
+      <div className="rise step-4 term-divided material mt-12 grid rounded-xl sm:grid-cols-3">
         <Headline value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} label="per mirrored trade" />
         <Headline value="$0" label="to start or stop" />
         <Headline value="self" label="custody, always" tone="var(--pos)" />
       </div>
+
+      <DataSources className="rise step-5 mt-10" />
     </section>
   );
 }

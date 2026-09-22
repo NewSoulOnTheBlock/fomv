@@ -9,6 +9,7 @@ import { Callout, FactLine, Panel, PanelBody, PanelHead, Stat } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { dimensionsFor } from "@/lib/dimensions";
+import { operatorHint } from "@/lib/operator";
 import { bandColor, count, pct, ratio, relative, score, shortAddress, signOf, signedUsd } from "@/lib/format";
 import { href } from "@/lib/router";
 import type { AppData, TraderProfile } from "@/lib/types";
@@ -162,21 +163,7 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
         <div className="order-2 min-w-0 lg:order-1">
           {profile && <Audit data={profile} />}
 
-          {missing && (
-            <Panel className="mt-10">
-              <PanelHead label="no audit yet" />
-              <PanelBody className="space-y-3">
-                <p className="text-[15px] text-muted-foreground">
-                  This trader is on the roster but their profile has not been computed into the
-                  site data.
-                </p>
-                <pre className="material-inset overflow-x-auto rounded-lg p-4 font-mono text-[11.5px]">
-                  bun run src/cli.ts profile --candidates {entry.leader}
-                  {"\n"}bun run build:appdata
-                </pre>
-              </PanelBody>
-            </Panel>
-          )}
+          {missing && <MissingAudit leader={entry.leader} />}
 
           {!profile && !missing && (
             <div className="mt-10 space-y-4">
@@ -214,5 +201,32 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * A listed trader whose audit has not been published.
+ *
+ * The visitor is told what is true and what happens next. What to run is
+ * logged for the operator, who is the only person who can run it.
+ */
+function MissingAudit({ leader }: { leader: string }) {
+  operatorHint(
+    "audit",
+    `No profile published for ${leader}. Run \`bun run src/cli.ts profile --candidates ${leader}\` ` +
+      "and then `bun run build:appdata`.",
+  );
+
+  return (
+    <Panel className="mt-10">
+      <PanelHead label="audit pending" />
+      <PanelBody>
+        <p className="text-[15px] leading-relaxed text-muted-foreground">
+          This trader is on the roster, but their audit has not been published yet. Every figure
+          FOMV shows comes from their on-chain history, and computing it takes a while — the page
+          will fill in once it has been.
+        </p>
+      </PanelBody>
+    </Panel>
   );
 }

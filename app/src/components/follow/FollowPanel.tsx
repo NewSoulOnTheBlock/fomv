@@ -8,6 +8,7 @@ import { Callout, Lamp, LeaderRow, Panel, PanelBody, PanelHead } from "@/compone
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
+import { operatorHint } from "@/lib/operator";
 import { bps } from "@/lib/format";
 import type { RosterEntry } from "@/lib/types";
 
@@ -122,6 +123,13 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
 }
 
 function SignedOut({ configured }: { configured: boolean }) {
+  if (!configured) {
+    operatorHint(
+      "auth",
+      "Sign-in is disabled because VITE_PRIVY_APP_ID is unset. Set it in app/.env.local.",
+    );
+  }
+
   return (
     <PanelBody className="space-y-4">
       <p className="text-[14px] leading-relaxed text-muted-foreground">
@@ -134,9 +142,8 @@ function SignedOut({ configured }: { configured: boolean }) {
       />
       {!configured && (
         <p className="text-[13px] text-faint">
-          Set <code className="font-mono">VITE_PRIVY_APP_ID</code> in{" "}
-          <code className="font-mono">app/.env.local</code> to enable sign-in. Everything else on
-          this page works without it.
+          Sign-in is temporarily unavailable. Everything else on this page — the audit, the
+          guardrails and the fees — works without it.
         </p>
       )}
     </PanelBody>
@@ -157,6 +164,14 @@ function NotFollowing({
   canDelegate: boolean;
   onDelegate: () => void;
 }) {
+  if (!canDelegate) {
+    operatorHint(
+      "auth",
+      "Authorisation is disabled because VITE_PRIVY_SIGNER_ID is unset. Create a session signer " +
+        "in the Privy dashboard and put its id in app/.env.local.",
+    );
+  }
+
   return (
     <>
       <div className="px-5 pt-5">
@@ -193,14 +208,14 @@ function NotFollowing({
           size="lg"
           onClick={onDelegate}
           disabled={busy || !canDelegate}
-          title={canDelegate ? undefined : "VITE_PRIVY_SIGNER_ID is not configured"}
+          title={canDelegate ? undefined : "Trade authorisation is temporarily unavailable"}
         >
           <ShieldCheck />
           {busy
             ? "waiting for your approval…"
             : canDelegate
               ? "Authorise trade signing"
-              : "Signing not configured"}
+              : "Temporarily unavailable"}
         </Button>
 
         <div className="flex items-center justify-between gap-3">

@@ -8,6 +8,7 @@ import { Shell } from "@/components/layout/Shell";
 import { Callout, Panel, PanelBody, PanelHead } from "@/components/term";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { operatorHint } from "@/lib/operator";
 import { href, useRoute, useScrollReset } from "@/lib/router";
 import type { AppData } from "@/lib/types";
 
@@ -66,20 +67,33 @@ function Loading() {
   );
 }
 
+/**
+ * The roster could not be loaded.
+ *
+ * The underlying message is a fetch error with a status code in it. That is
+ * exactly what the operator needs and exactly what a visitor cannot use, so it
+ * goes to the console and the page says the one useful thing instead: this is
+ * ours, not yours, and the rest of the site still works.
+ */
 function DataError({ message }: { message: string }) {
+  operatorHint(
+    "data",
+    `${message} — the roster and every audit are read from static JSON. Run ` +
+      "`bun run build:appdata` from the repository root.",
+  );
+
   return (
-    <div className="pt-12">
+    <div className="pt-16">
       <Panel>
-        <PanelHead label="no site data" />
-        <PanelBody className="space-y-3">
-          <Callout tone="warn">{message}</Callout>
-          <p className="text-[13px] text-muted-foreground">
-            The roster and every audit are read from static JSON. Generate it from the repository
-            root:
+        <PanelHead label="roster unavailable" />
+        <PanelBody className="space-y-4">
+          <p className="text-[15px] leading-relaxed text-muted-foreground">
+            The roster could not be loaded just now. This is a fault on our side rather than
+            anything you did — it is usually brief.
           </p>
-          <pre className="bg-muted border border-border p-3 text-[11px] font-mono overflow-x-auto">
-            bun run build:appdata
-          </pre>
+          <Button asChild variant="outline" size="sm">
+            <a href={href("/apply")}>Get listed instead</a>
+          </Button>
         </PanelBody>
       </Panel>
     </div>

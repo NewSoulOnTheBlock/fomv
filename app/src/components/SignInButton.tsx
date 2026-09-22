@@ -68,7 +68,7 @@ export function SignInButton({
       busy={busy}
       title={
         !auth.configured
-          ? "Set VITE_PRIVY_APP_ID in app/.env.local to enable sign-in"
+          ? "Sign-in is temporarily unavailable"
           : !auth.ready
             ? "Connecting to Privy…"
             : "Sign in with Google, X, Discord or email — a Solana wallet is created for you"

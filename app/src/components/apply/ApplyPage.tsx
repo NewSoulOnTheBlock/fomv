@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { submitApplication } from "@/lib/api";
+import { operatorHint } from "@/lib/operator";
 import { usd } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ApplicationDraft } from "@/lib/types";
@@ -250,20 +251,7 @@ export function ApplyPage() {
                 {CALENDLY_URL ? (
                   <CalendlyEmbed url={CALENDLY_URL} />
                 ) : (
-                  <Panel>
-                    <PanelHead label="booking not configured" />
-                    <PanelBody className="space-y-2">
-                      <Callout tone="warn">
-                        No calendar is wired up on this deployment. Set{" "}
-                        <code className="font-mono">VITE_CALENDLY_URL</code> in{" "}
-                        <code className="font-mono">app/.env.local</code> to the Calendly event
-                        link.
-                      </Callout>
-                      <p className="text-[12px] text-muted-foreground">
-                        The application above was still recorded.
-                      </p>
-                    </PanelBody>
-                  </Panel>
+                  <BookingUnavailable recorded={!offline} />
                 )}
               </>
             )}
@@ -331,6 +319,35 @@ function Received({
             few hundred RPC reads and a while to price everything.
           </p>
         )}
+      </PanelBody>
+    </Panel>
+  );
+}
+
+/**
+ * The calendar could not be shown.
+ *
+ * Two different situations reach this, and conflating them would be the worst
+ * of it: an application that *was* recorded and one that was not. The first is
+ * an inconvenience; the second means the trader has to do something. The
+ * operator gets the variable name, the applicant gets the consequence.
+ */
+function BookingUnavailable({ recorded }: { recorded: boolean }) {
+  operatorHint(
+    "apply",
+    "No calendar is shown because VITE_CALENDLY_URL is unset. Set it to the scheduling link in " +
+      "app/.env.local.",
+  );
+
+  return (
+    <Panel>
+      <PanelHead label="booking unavailable" />
+      <PanelBody>
+        <p className="text-[15px] leading-relaxed text-muted-foreground">
+          {recorded
+            ? "Booking is not available right now, but your application has been recorded. We will be in touch to arrange a time."
+            : "Booking is not available right now, and your application was not saved either. Please try again shortly — nothing about your wallet was touched."}
+        </p>
       </PanelBody>
     </Panel>
   );

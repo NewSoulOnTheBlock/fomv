@@ -1,4 +1,5 @@
 import { Panel, PanelBody, PanelHead } from "@/components/term";
+import { operatorHint } from "@/lib/operator";
 import { cn } from "@/lib/utils";
 import type { PriceSource } from "@/lib/types";
 
@@ -32,15 +33,19 @@ export function PriceSourceNote({
   // and wrong the moment an older file from a run that did have a feed is
   // restored, and the claim would be unverifiable either way.
   if (!source) {
+    operatorHint(
+      "audit",
+      "This profile has no priceSource. Re-run `bun run src/cli.ts profile` and then " +
+        "`bun run build:appdata` so entry and exit quality can be attributed.",
+    );
     return (
       <Panel className={className}>
         <PanelHead label="price source" aside="not recorded" />
         <PanelBody>
           <p className="text-[14px] leading-relaxed text-muted-foreground">
-            This profile was computed before the price source was recorded, so the two figures
-            above cannot be attributed to either the market or the trader's own fills. Re-run{" "}
-            <code className="font-mono text-foreground">cli.ts profile</code> to get an attributed
-            reading.
+            This audit was computed before FOMV began recording which prices it measured against,
+            so the two figures above cannot be attributed to the market or to the trader's own
+            fills. They will be attributed the next time this trader is audited.
           </p>
         </PanelBody>
       </Panel>

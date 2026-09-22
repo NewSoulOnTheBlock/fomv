@@ -1,3 +1,4 @@
+import { operatorHint } from "./operator";
 import type { ApplicationDraft } from "./types";
 
 /**
@@ -32,12 +33,17 @@ export interface ApplyFailed {
 
 export async function submitApplication(draft: ApplicationDraft): Promise<ApplyOk | ApplyFailed> {
   if (!apiConfigured) {
+    operatorHint(
+      "apply",
+      "Applications cannot be recorded because VITE_FOMV_API is unset. Point it at the follow " +
+        "server in app/.env.local.",
+    );
     return {
       ok: false,
       offline: true,
       errors: [
-        "Applications are not wired up on this deployment yet (VITE_FOMV_API is unset). " +
-          "Book the call below and bring your wallet address to it — nothing is lost.",
+        "We could not save your application just now. Book a time below anyway and bring your " +
+          "wallet address to the call — nothing is lost, and we will take your details there.",
       ],
     };
   }
@@ -53,7 +59,10 @@ export async function submitApplication(draft: ApplicationDraft): Promise<ApplyO
     return {
       ok: false,
       offline: true,
-      errors: ["Could not reach the server. Book the call below and bring your address to it."],
+      errors: [
+        "We could not reach our server. Book a time below anyway and bring your wallet address " +
+          "to the call — nothing is lost.",
+      ],
     };
   }
 

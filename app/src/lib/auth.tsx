@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
 import { PrivyProvider, usePrivy, useSessionSigners, useSolanaWallets } from "@privy-io/react-auth";
 
+import { operatorHint } from "./operator";
+
 /**
  * Authentication and delegation, behind one small interface.
  *
@@ -148,9 +150,16 @@ function PrivyBridge({ children }: { children: ReactNode }) {
   const delegate = useCallback(async () => {
     if (!address) throw new Error("No Solana wallet yet - sign in first.");
     if (!SIGNER_ID) {
-      throw new Error(
-        "VITE_PRIVY_SIGNER_ID is not set. Create a session signer in the Privy dashboard and put its id in app/.env.",
+      // The button that calls this is already disabled without a signer id, so
+      // reaching here means something else went wrong. The thrown message is
+      // rendered to the user, so it says what it means to them; the fix goes
+      // to the console, where the only people who can apply it are looking.
+      operatorHint(
+        "auth",
+        "delegate() was called with no VITE_PRIVY_SIGNER_ID. Create a session signer in the " +
+          "Privy dashboard and put its id in app/.env.local.",
       );
+      throw new Error("Trade authorisation is temporarily unavailable. Nothing was changed.");
     }
     await addSessionSigners({ address, signers: [{ signerId: SIGNER_ID }] });
   }, [address, addSessionSigners]);

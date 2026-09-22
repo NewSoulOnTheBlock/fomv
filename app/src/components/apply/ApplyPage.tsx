@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { submitApplication } from "@/lib/api";
 import { usd } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { ApplicationDraft } from "@/lib/types";
 
 /**
@@ -194,7 +195,7 @@ export function ApplyPage() {
                       inputMode="decimal"
                     />
                     <div className="space-y-1.5">
-                      <Label htmlFor="strategy" className="term-label !text-muted-foreground">
+                      <Label htmlFor="strategy" className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                         What you trade, and why it copies
                       </Label>
                       <Textarea
@@ -434,7 +435,7 @@ function Field({
 } & Omit<React.ComponentProps<"input">, "id" | "value" | "onChange">) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="term-label !text-muted-foreground">
+      <Label htmlFor={id} className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
         {label}
         {rest.required && <span className="text-primary ml-1">*</span>}
       </Label>
@@ -442,7 +443,11 @@ function Field({
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={mono ? "font-mono text-[12px]" : "text-[13px]"}
+        className={cn(
+          mono ? "font-mono text-[12px]" : "text-[13px]",
+          // A field you cannot type in should not invite you to try.
+          rest.readOnly && "bg-muted text-muted-foreground focus-visible:ring-0 cursor-default",
+        )}
         {...rest}
       />
       {hint && <p className="text-[11px] leading-snug text-faint">{hint}</p>}

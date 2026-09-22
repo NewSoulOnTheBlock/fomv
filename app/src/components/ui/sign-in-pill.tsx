@@ -47,7 +47,7 @@ export function SignInPill({ label, onClick, disabled, busy, title, className }:
       aria-label={label}
       aria-busy={busy}
       className={cn(
-        "group inline-flex h-8 items-center justify-center gap-2 rounded-[2px] px-3",
+        "group inline-flex h-8 min-w-0 max-w-full items-center justify-center gap-2 rounded-[2px] px-3",
         "border border-primary bg-primary text-primary-foreground",
         "font-mono text-[12px] font-semibold tracking-wide whitespace-nowrap",
         "transition-[filter,background,border-color] hover:brightness-110",
@@ -58,7 +58,7 @@ export function SignInPill({ label, onClick, disabled, busy, title, className }:
       )}
     >
       <LogIn className="size-3.5 shrink-0" aria-hidden />
-      <span>{busy ? "opening" : label}</span>
+      <span className="truncate">{busy ? "opening" : label}</span>
       {!disabled && (
         <span
           aria-hidden

@@ -245,7 +245,7 @@ export function BucketBars({
       {values.map((v, i) => {
         const h = Math.max(2, (Math.abs(v) / peak) * 26);
         return (
-          <div key={i} className="flex-1 min-w-[3px] flex flex-col justify-center h-full">
+          <div key={i} className="flex-1 min-w-[3px] max-w-[28px] flex flex-col justify-center h-full">
             <div className="flex-1 flex items-end">
               {v > 0 && <div className="w-full rounded-[1px] bg-pos" style={{ height: h }} />}
             </div>
@@ -336,7 +336,7 @@ export function Address({
       title={value}
       aria-label={`Copy address ${value}`}
       className={cn(
-        "group inline-flex items-center gap-1.5 font-mono text-[12px] text-muted-foreground",
+        "group inline-flex min-w-0 max-w-full items-center gap-1.5 font-mono text-[12px] text-muted-foreground",
         "transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none",
         className,
       )}

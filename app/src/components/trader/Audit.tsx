@@ -97,7 +97,7 @@ export function Audit({ data }: { data: TraderProfile }) {
       </Panel>
 
       <SectionRule aside="ten figures">The core metrics</SectionRule>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-px bg-border border border-border">
         <Metric
           n="01"
           k="Realised P&L"
@@ -164,6 +164,12 @@ export function Audit({ data }: { data: TraderProfile }) {
           v={pct(p.exit.captureRatio, 0)}
           note={`of the available move · ${p.exit.sampleSize}/${p.exit.population} judged`}
         />
+        <Metric
+          n="10"
+          k="Consistency"
+          v={p.dimensions.consistency === null ? EMPTY : score(p.dimensions.consistency)}
+          note={`${c.consistency.buckets} time ${c.consistency.buckets === 1 ? "bucket" : "buckets"} observed`}
+        />
       </div>
 
       <SectionRule>Skill versus exposure</SectionRule>
@@ -174,12 +180,23 @@ export function Audit({ data }: { data: TraderProfile }) {
         <ExitDetail data={data} />
       </div>
 
-      {c.consistency.buckets > 0 && (
+      {c.consistency.bucketPnlUsd.length > 0 && (
         <>
-          <SectionRule aside={`${c.consistency.buckets} periods`}>Consistency over time</SectionRule>
+          <SectionRule
+            aside={`${c.consistency.buckets} ${c.consistency.buckets === 1 ? "period" : "periods"}`}
+          >
+            Consistency over time
+          </SectionRule>
           <Panel>
             <PanelBody>
-              <BucketBars values={c.consistency.bucketPnlUsd} />
+              {c.consistency.bucketPnlUsd.length >= 3 ? (
+                <BucketBars values={c.consistency.bucketPnlUsd} />
+              ) : (
+                <p className="text-[12px] leading-relaxed text-faint">
+                  Too few periods to plot. A chart of one observation draws a shape that is not
+                  there, so the figures are given on their own until there are at least three.
+                </p>
+              )}
               <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <Stat
                   label="profitable periods"
@@ -506,7 +523,9 @@ function Metric({
 }) {
   return (
     <div className="bg-card p-4">
-      <div className="flex items-baseline justify-between gap-2">
+      {/* Reserved for two lines, so a label that wraps does not push its own
+          figure out of line with the rest of the row. */}
+      <div className="flex min-h-[26px] items-start justify-between gap-2">
         <span className="term-label">{k}</span>
         <span className="font-mono text-[10px] text-faint">{n}</span>
       </div>

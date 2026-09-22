@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 
 import { DEFAULT_FEE_TERMS } from "@engine/follow/fees.js";
+import { LISTING_TERMS } from "@engine/platform/listing.js";
 import { AccountChip } from "@/components/AccountChip";
 import { Tag } from "@/components/term";
 import { cn } from "@/lib/utils";
@@ -51,7 +52,7 @@ export function Shell({
 function StatusStrip({ data }: { data: AppData | null }) {
   const cells: [string, ReactNode][] = [
     ["net", data?.platform.cluster ?? "—"],
-    ["roster", data ? `${data.roster.length}/${data.platform.maxLiveVaults}` : "—"],
+    ["roster", data ? `${data.roster.length}/${LISTING_TERMS.maxRoster}` : "—"],
     ["fee", `${bps(DEFAULT_FEE_TERMS.tradeFeeBps)} / trade`],
     ["custody", <span className="text-pos">self</span>],
   ];
@@ -80,7 +81,7 @@ function Header({ route }: { route: Route }) {
           moment real figures are laid over it. */}
       <div className="absolute inset-0 term-grid opacity-[0.55] pointer-events-none" aria-hidden />
 
-      <div className="relative max-w-[1180px] mx-auto px-4 sm:px-6 h-14 flex items-center gap-4 sm:gap-8">
+      <div className="relative max-w-[1180px] mx-auto px-4 sm:px-6 h-14 flex items-center gap-3 sm:gap-8">
         <a href={href("/")} className="flex items-center gap-2.5 shrink-0 group">
           {/*
             The shield alone, not the full lockup. The lockup carries its own
@@ -105,7 +106,7 @@ function Header({ route }: { route: Route }) {
           </span>
         </a>
 
-        <nav className="flex items-center gap-1" aria-label="Main">
+        <nav className="flex items-center gap-1 min-w-0 shrink" aria-label="Main">
           {NAV.map((item) => {
             const active = item.match.includes(route.name);
             return (
@@ -114,8 +115,8 @@ function Header({ route }: { route: Route }) {
                 href={href(item.path)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "px-2.5 py-1 font-mono text-[12px] tracking-wide transition-colors",
-                  "border-b-2 -mb-px",
+                  "px-2 sm:px-2.5 py-1 font-mono text-[12px] tracking-wide transition-colors",
+                  "border-b-2 -mb-px truncate",
                   active
                     ? "border-primary text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground",
@@ -127,7 +128,7 @@ function Header({ route }: { route: Route }) {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex min-w-0 items-center gap-3">
           <AccountChip />
         </div>
       </div>

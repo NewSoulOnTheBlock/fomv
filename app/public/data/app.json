@@ -1,0 +1,33 @@
+{
+  "platform": {
+    "name": "FOMV",
+    "withdrawFeeBps": 100,
+    "maxWithdrawFeeBps": 200,
+    "listingFeeLamports": "5000000000",
+    "listingFeeSol": 5,
+    "maxLiveVaults": 3,
+    "treasury": null,
+    "programDeployed": false,
+    "programId": null,
+    "cluster": "mainnet-beta"
+  },
+  "roster": [
+    {
+      "handle": "pointfarmcap",
+      "leader": "Beqv6dzTcjV2eodo8RRXCiCcnSYrS1vkQKhfqwHXqeit",
+      "chain": "solana",
+      "status": "approved",
+      "vaultAddress": null,
+      "withdrawFeeBps": 100,
+      "performanceFeeBps": 1000,
+      "note": "Scored 2026-09-22 over the most recent ~1,200 signatures: grade A, composite 91, capacity ~$1.6m against a $15.9m book. High-frequency; the window covered under a day of activity.",
+      "elsewhere": [
+        {
+          "address": "0xfd87eda88be6c372453b721da63d58ad1a5b2d94",
+          "note": "EVM address supplied alongside the Solana one. Which EVM chain is not yet established, and there is no EVM ChainAdapter in this repo, so nothing here reads, scores or mirrors it. A pointfarmcap vault is Solana-only until that adapter exists."
+        }
+      ]
+    }
+  ],
+  "generatedAtMs": 1790066554667
+}

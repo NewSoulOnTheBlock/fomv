@@ -1,0 +1,232 @@
+@import "tailwindcss";
+
+/*
+ * Tailwind first, our own rules after.
+ *
+ * shadcn registry components (skiper-ui and friends) are written in Tailwind
+ * utilities and cannot work without it. Importing it ahead of the hand-written
+ * CSS below means that where the two collide on equal specificity, ours wins --
+ * so adding a registry component cannot restyle the dashboard behind our back.
+ */
+
+/* FOMV — a trading product, committed to a single dark look. */
+
+:root {
+  --bg: #08090c;
+  --bg-raised: #0e1016;
+  --bg-sunken: #05060880;
+  --line: #1c202b;
+  --line-soft: #14171f;
+
+  --text: #e8eaf0;
+  --text-dim: #8b93a7;
+  --text-faint: #5b6377;
+
+  --accent: #4ade80;
+  --accent-dim: #4ade8022;
+
+  --good: #4ade80;
+  --ok: #a3e635;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --none: #4b5364;
+
+  --radius: 10px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--bg-raised);
+  color: var(--text);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius);
+  transition: border-color 0.15s, background 0.15s;
+}
+button:hover:not(:disabled) { border-color: var(--text-faint); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #05210f;
+  font-weight: 600;
+}
+button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+
+input {
+  font: inherit;
+  font-family: var(--mono);
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+  width: 100%;
+}
+input:focus { outline: none; border-color: var(--accent); }
+
+/* ---------- layout ---------- */
+
+.shell { max-width: 1140px; margin: 0 auto; padding: 0 1.25rem 5rem; }
+
+header.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--line-soft);
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.brand { display: flex; align-items: baseline; gap: 0.6rem; }
+.brand .mark { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; }
+.brand .sub { color: var(--text-faint); font-size: 0.8rem; }
+
+.who { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
+.who .addr { font-family: var(--mono); color: var(--text-dim); }
+
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+.grid { display: grid; gap: 1rem; }
+.cols-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.cols-3 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.cols-4 { grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); }
+
+/* Tailwind preflight strips heading weight and size, so both are stated
+   explicitly here rather than relying on browser defaults. */
+h1, h2 { font-weight: 600; }
+h2 { font-size: 1.05rem; margin: 2.25rem 0 0.9rem; letter-spacing: -0.01em; }
+h3 { font-size: 0.8rem; margin: 0 0 0.75rem; color: var(--text-dim); font-weight: 600;
+     text-transform: uppercase; letter-spacing: 0.06em; }
+
+.muted { color: var(--text-dim); }
+.faint { color: var(--text-faint); }
+.mono { font-family: var(--mono); }
+.small { font-size: 0.82rem; }
+
+/* ---------- edge score centrepiece ---------- */
+
+.edge {
+  display: grid;
+  grid-template-columns: minmax(190px, 240px) 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+@media (max-width: 720px) { .edge { grid-template-columns: 1fr; } }
+
+.edge-dial { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+.edge-dial .value { font-family: var(--mono); font-size: 3.6rem; font-weight: 700; line-height: 1; letter-spacing: -0.04em; }
+.edge-dial .of { color: var(--text-faint); font-size: 0.85rem; }
+.edge-dial .grade {
+  font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+  border: 1px solid currentColor; border-radius: 999px; padding: 0.15rem 0.7rem; margin-top: 0.35rem;
+}
+
+.headline { display: flex; flex-wrap: wrap; gap: 1.5rem 2.25rem; }
+.headline .item .k { color: var(--text-faint); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.headline .item .v { font-family: var(--mono); font-size: 1.15rem; margin-top: 0.15rem; }
+
+/* ---------- dimension bars ---------- */
+
+.dim { margin-bottom: 0.9rem; }
+.dim:last-child { margin-bottom: 0; }
+.dim .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.3rem; }
+.dim .name { font-size: 0.88rem; }
+.dim .val { font-family: var(--mono); font-size: 0.88rem; }
+.dim .track { height: 6px; background: var(--bg-sunken); border-radius: 999px; overflow: hidden; border: 1px solid var(--line-soft); }
+.dim .fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+.dim .hatch {
+  height: 100%; width: 100%;
+  background: repeating-linear-gradient(135deg, var(--line) 0 5px, transparent 5px 10px);
+}
+.dim .why { font-size: 0.76rem; color: var(--text-faint); margin-top: 0.3rem; }
+
+/* ---------- metric table ---------- */
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; background: var(--line-soft);
+           border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.metric { background: var(--bg-raised); padding: 0.9rem 1rem; }
+.metric .n { color: var(--text-faint); font-size: 0.68rem; font-family: var(--mono); }
+.metric .k { color: var(--text-dim); font-size: 0.78rem; margin-top: 0.1rem; }
+.metric .v { font-family: var(--mono); font-size: 1.22rem; margin-top: 0.3rem; letter-spacing: -0.02em; }
+.metric .note { color: var(--text-faint); font-size: 0.72rem; margin-top: 0.25rem; }
+
+/* ---------- callouts ---------- */
+
+.callout { border-left: 2px solid var(--warn); padding: 0.7rem 0 0.7rem 0.9rem; margin: 0.6rem 0; font-size: 0.86rem; }
+.callout.flag { border-color: var(--warn); }
+.callout.gap { border-color: var(--none); color: var(--text-dim); }
+.callout.note { border-color: var(--accent); }
+
+.banner {
+  border: 1px solid var(--warn);
+  background: #fbbf2410;
+  border-radius: var(--radius);
+  padding: 0.9rem 1.1rem;
+  font-size: 0.86rem;
+  margin-bottom: 1.25rem;
+}
+.banner strong { color: var(--warn); }
+
+/* ---------- roster ---------- */
+
+.vault-card { display: block; width: 100%; text-align: left; padding: 1.1rem 1.25rem; }
+.vault-card .top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.vault-card .handle { font-size: 1.05rem; font-weight: 600; }
+.vault-card .stats { display: flex; gap: 1.5rem; margin-top: 0.85rem; }
+.vault-card .stats .k { color: var(--text-faint); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.vault-card .stats .v { font-family: var(--mono); font-size: 0.95rem; }
+
+.pill {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+  border: 1px solid var(--line); border-radius: 999px; padding: 0.15rem 0.6rem; color: var(--text-dim);
+}
+.pill.live { color: var(--good); border-color: var(--good); }
+.pill.suspended { color: var(--warn); border-color: var(--warn); }
+
+/* ---------- deposit panel ---------- */
+
+.tabs { display: flex; gap: 0.35rem; margin-bottom: 1rem; }
+.tabs button { flex: 1; background: transparent; border-color: transparent; color: var(--text-dim); }
+.tabs button[aria-selected="true"] { background: var(--bg-sunken); border-color: var(--line); color: var(--text); }
+
+.quote { margin-top: 1rem; border-top: 1px solid var(--line-soft); padding-top: 0.9rem; }
+.quote .line { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 0.25rem 0; }
+.quote .line .v { font-family: var(--mono); }
+.quote .line.total { border-top: 1px solid var(--line-soft); margin-top: 0.4rem; padding-top: 0.55rem; font-weight: 600; }
+
+.bucket-chart { display: flex; align-items: flex-end; gap: 3px; height: 54px; margin-top: 0.5rem; }
+.bucket-chart .b { flex: 1; min-width: 3px; border-radius: 2px 2px 0 0; }
+
+.backlink { background: none; border: none; color: var(--text-dim); padding: 0; margin-bottom: 1rem; }
+.backlink:hover { color: var(--text); }
+
+.footer { margin-top: 3.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line-soft);
+          color: var(--text-faint); font-size: 0.78rem; }

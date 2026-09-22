@@ -1,9 +1,12 @@
-# Only web/ is served. The engine is a long-running poller and is not part of
-# this deployment; keeping it out of the upload keeps the deploy small.
+# The app imports the fee arithmetic from the engine through the @engine
+# alias, so src/ MUST be uploaded -- excluding it breaks the build rather
+# than shrinking it. Only the genuinely unused parts are skipped.
 node_modules
-src
+app/node_modules
+app/dist
 test
-scripts
 docs
+state
+onchain
 .env
 .env.*

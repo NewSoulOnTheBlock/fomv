@@ -1,3 +1,6 @@
+// Must be first: library code touches Buffer during module initialisation.
+import "./polyfills";
+
 import React from "react";
 import { createRoot } from "react-dom/client";
 

@@ -15,6 +15,32 @@ connections — none of which survive being started fresh per request.
 > same unprocessed trades before either recorded a fill, and mirror everything
 > twice. If you want redundancy, run a standby that is not polling.
 
+## Privy setup (do this first)
+
+The wallets are **TEE-backed**, which decides the whole delegation API. Privy
+has two architectures and they do not share one:
+
+| Wallet type | Hook | Grants |
+|---|---|---|
+| On-device | `useDelegatedActions` | `delegateWallet` |
+| **TEE (this app)** | `useSessionSigners` | `addSessionSigners` |
+
+Calling the wrong one fails with *"useDelegatedActions is only supported for
+on-device execution"*. In the browser that error never reached the UI, so the
+Authorise button simply did nothing -- which is how this was found.
+
+So, in the Privy dashboard:
+
+1. Create a **session signer** (under Wallet infrastructure / key quorums).
+2. Put its id in `app/.env` as `VITE_PRIVY_SIGNER_ID`, and rebuild the app --
+   Vite inlines `VITE_` vars at build time, so a redeploy is required.
+3. Register an **authorisation keypair** and give the server its private key as
+   `PRIVY_AUTHORIZATION_PRIVATE_KEY`.
+
+The server needs Privy's `walletId` to request a signature. That is the `id`
+field on the user's wallet account, and Privy only issues it **once delegation
+exists** — so the app reads it after the grant and sends it to `/subscribe`.
+
 ## Prerequisites
 
 | | |
@@ -117,10 +143,34 @@ Worth stating so nobody goes looking for it:
   are the thing to review before launch.
 - **It does not custody anything.** There is no pooled balance, no shares, no
   NAV. A subscriber's position is their own wallet.
-- **It does not collect fees automatically.** Fees accrue in the ledger and are
-  swept separately. Charging inside the swap would let a failed fee transfer
-  revert the subscriber's trade — their execution must never depend on our
-  invoice.
+- **It does not collect fees or pay leaders automatically.** Both sides accrue
+  in the ledger and are settled separately. Charging inside the swap would let
+  a failed fee transfer revert the subscriber's trade — their execution must
+  never depend on our invoice.
+
+## Fees
+
+1% of each mirrored trade's filled notional, **split evenly with the trader
+being copied**. Trades under $20 are free.
+
+The ledger keeps two views of the same money, because they answer different
+questions: `owed` is what each subscriber owes (what an account page shows and
+what collection chases), and `payableTo` is what each payee is owed (what the
+payout run needs).
+
+Two properties worth knowing before you touch the numbers:
+
+- The platform's share is computed as the **remainder**, not its own
+  multiplication, so the halves always sum to exactly what the subscriber was
+  charged. Two independent roundings would leave a residue belonging to nobody.
+- `FOMV_TRADE_FEE_BPS` defaults to 100, which is also the engine's ceiling. The
+  rate therefore cannot be raised without a code change and a release.
+
+Set `FOMV_LEADER_SHARE_BPS` to change the split (5000 = half). A leader's share
+goes to `payoutAddress` in `src/platform/roster.ts`, falling back to their
+trading address — **collect a separate payout address at listing**, because
+paying into the wallet being watched moves the very balances the strategy sizes
+against.
 
 ## Failure modes you will actually hit
 

@@ -23,13 +23,31 @@ import type { RosterEntry } from "@/lib/types";
  * A consent screen that enumerates only what it is being granted reads as a
  * longer list of powers than it is, and the reader has no way to tell where
  * the permission stops. Listing the boundary explicitly is the only way to
- * make "cannot move your funds" a claim rather than an omission — and it is
+ * make "cannot move your funds" a claim rather than an omission -- and it is
  * the true and load-bearing fact about this product.
  *
  * Nothing on this panel is styled to persuade. The action is the only amber
  * element; every guarantee is stated in the same weight as every limitation,
  * including the one that is worse for the user.
  */
+
+/** Reject rather than hang if the wallet provider never settles. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("The wallet provider did not respond. Please try again.")), ms),
+    ),
+  ]);
+}
+
+/** e.g. "half (0.50%)" — stated in both forms so neither has to be inferred. */
+function splitLabel(): string {
+  const share = DEFAULT_FEE_TERMS.leaderShareBps / 10_000;
+  const asPct = (DEFAULT_FEE_TERMS.tradeFeeBps * share) / 100;
+  return `${(share * 100).toFixed(0)}% (${asPct.toFixed(2)}%)`;
+}
+
 export function FollowPanel({ vault }: { vault: RosterEntry }) {
   const auth = useAuth();
   const [busy, setBusy] = useState<"delegate" | "revoke" | null>(null);
@@ -39,12 +57,20 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
     setBusy(kind);
     setError(null);
     try {
-      await fn();
+      // Bounded, because a provider that neither resolves nor rejects would
+      // otherwise leave the button reading "waiting for your approval" for
+      // ever -- which is exactly how a genuine failure first presented.
+      await withTimeout(fn(), 90_000);
     } catch (e) {
-      // A user closing the consent modal is the common path here, not a fault.
-      const msg = (e as Error).message ?? String(e);
-      setError(/reject|cancel|closed|denied/i.test(msg) ? null : msg);
+      const msg = (e as Error)?.message ?? String(e);
+      // Only a deliberate dismissal is silent. An earlier version also matched
+      // "denied", so a real permission failure vanished and the button simply
+      // looked broken.
+      const dismissed = /user (rejected|cancelled|canceled)|modal closed|dismissed/i.test(msg);
+      setError(dismissed ? null : msg);
     } finally {
+      // Always, including the timeout path. A stuck spinner tells the user
+      // nothing and hides the thing that went wrong.
       setBusy(null);
     }
   };
@@ -77,8 +103,10 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
         />
       ) : (
         <NotFollowing
+          vault={vault}
           address={auth.walletAddress}
           busy={busy === "delegate"}
+          canDelegate={auth.canDelegate}
           onDelegate={() => run("delegate", auth.delegate)}
         />
       )}
@@ -115,12 +143,17 @@ function SignedOut({ configured }: { configured: boolean }) {
 }
 
 function NotFollowing({
+  vault,
   address,
   busy,
+  canDelegate,
   onDelegate,
 }: {
+  vault: RosterEntry;
   address: string;
   busy: boolean;
+  /** False when VITE_PRIVY_SIGNER_ID is missing, so delegation cannot start. */
+  canDelegate: boolean;
   onDelegate: () => void;
 }) {
   return (
@@ -144,6 +177,7 @@ function NotFollowing({
       <div className="border-t border-border p-4">
         <div className="term-label mb-1">what it costs</div>
         <LeaderRow label="Fee per mirrored trade" value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} />
+        <LeaderRow label={`— of which to ${vault.handle}`} value={splitLabel()} />
         <LeaderRow
           label={`Trades under $${DEFAULT_FEE_TERMS.minChargeableUsd}`}
           value={<span className="text-pos">free</span>}
@@ -153,9 +187,19 @@ function NotFollowing({
       </div>
 
       <div className="border-t border-border p-4 space-y-3">
-        <Button className="w-full font-mono" size="lg" onClick={onDelegate} disabled={busy}>
+        <Button
+          className="w-full font-mono"
+          size="lg"
+          onClick={onDelegate}
+          disabled={busy || !canDelegate}
+          title={canDelegate ? undefined : "VITE_PRIVY_SIGNER_ID is not configured"}
+        >
           <ShieldCheck />
-          {busy ? "waiting for your approval…" : "Authorise trade signing"}
+          {busy
+            ? "waiting for your approval…"
+            : canDelegate
+              ? "Authorise trade signing"
+              : "Signing not configured"}
         </Button>
 
         <div className="flex items-center justify-between gap-3">
@@ -166,7 +210,8 @@ function NotFollowing({
         <p className="text-[11px] leading-relaxed text-faint">
           Fees are charged on trade notional rather than on profit, because a wallet you also trade
           yourself has no cost basis FOMV can honestly measure. In a losing month that is worse for
-          you than a performance fee would be, and it is the reason the rate is low.
+          you than a performance fee would be. Half of every fee goes to {vault.handle} — they
+          supply the only thing you are paying for.
         </p>
       </div>
     </>
@@ -198,6 +243,7 @@ function Following({
         <LeaderRow label="Your wallet" value={<Address value={address} lead={4} tail={4} />} />
         <LeaderRow label="Max position in one token" value={bps(1500)} />
         <LeaderRow label="Fee per mirrored trade" value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} />
+        <LeaderRow label={`— of which to ${vault.handle}`} value={splitLabel()} />
       </div>
 
       <div className="border-t border-border p-4 space-y-3">
@@ -205,9 +251,8 @@ function Following({
           {busy ? "revoking…" : "Stop following"}
         </Button>
         <p className="text-[11px] leading-relaxed text-faint">
-          Revoking withdraws signing permission from <em>every</em> wallet you have delegated,
-          takes effect immediately, and leaves your balances untouched — nothing is sold and
-          nothing moves.
+          Revoking withdraws signing permission immediately and leaves your balances untouched —
+          nothing is sold and nothing moves.
         </p>
       </div>
     </>
@@ -224,7 +269,10 @@ function Permission({ allowed = false, children }: { allowed?: boolean; children
         <X className="size-3.5 mt-0.5 shrink-0 text-neg" aria-hidden />
       )}
       <span className="flex-1 text-[12px] leading-snug text-secondary-foreground">{children}</span>
-      <span className="term-label shrink-0 mt-0.5" style={{ color: allowed ? "var(--pos)" : "var(--neg)" }}>
+      <span
+        className="term-label shrink-0 mt-0.5"
+        style={{ color: allowed ? "var(--pos)" : "var(--neg)" }}
+      >
         {allowed ? "allowed" : "never"}
       </span>
     </div>

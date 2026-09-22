@@ -81,8 +81,23 @@ function Header({ route }: { route: Route }) {
       <div className="absolute inset-0 term-grid opacity-[0.55] pointer-events-none" aria-hidden />
 
       <div className="relative max-w-[1180px] mx-auto px-4 sm:px-6 h-14 flex items-center gap-4 sm:gap-8">
-        <a href={href("/")} className="flex items-baseline gap-2.5 shrink-0 group">
-          <span className="font-mono text-[17px] font-bold tracking-[-0.03em]">
+        <a href={href("/")} className="flex items-center gap-2.5 shrink-0 group">
+          {/*
+            The shield alone, not the full lockup. The lockup carries its own
+            "FOMO VAULT" wordmark, which at header size renders as an illegible
+            smudge -- so the name is set in type instead, where it stays sharp
+            at any size. The full lockup is still shipped for share cards.
+          */}
+          <img
+            src="/mark-72.png"
+            srcSet="/mark-72.png 1x, /mark-144.png 2x"
+            alt=""
+            width={26}
+            height={26}
+            decoding="async"
+            className="block size-[26px] shrink-0"
+          />
+          <span className="font-mono text-[17px] font-bold tracking-[-0.03em] leading-none">
             FOM<span className="text-primary">V</span>
           </span>
           <span className="term-label hidden md:block transition-colors group-hover:text-muted-foreground">

@@ -144,23 +144,32 @@ describe("fee ledger persistence", () => {
     const s = store();
     const ledger = createFeeLedger();
     const terms = makeFeeTerms("TREASURY");
-    accrue(ledger, "A", feeForTrade(1_000, terms));
-    accrue(ledger, "B", feeForTrade(4_000, terms));
+    const payees = { treasury: "TREASURY", leaderPayout: "LEADERPAY" };
+    accrue(ledger, "A", feeForTrade(1_000, terms), payees);
+    accrue(ledger, "B", feeForTrade(4_000, terms), payees);
     s.saveFeeLedger(ledger);
 
     const reloaded = s.loadFeeLedger();
-    expect(reloaded.owed.get("A")).toBeCloseTo(2.5, 9);
-    expect(reloaded.owed.get("B")).toBeCloseTo(10, 9);
+    expect(reloaded.owed.get("A")).toBeCloseTo(10, 9);
+    expect(reloaded.owed.get("B")).toBeCloseTo(40, 9);
+    // The payout side must survive too, or a restart forgets what the leader
+    // is owed while still remembering what the subscriber paid.
+    expect(reloaded.payableTo.get("TREASURY")).toBeCloseTo(25, 9);
+    expect(reloaded.payableTo.get("LEADERPAY")).toBeCloseTo(25, 9);
     s.close();
   });
 
   test("saving again overwrites rather than doubling", () => {
     const s = store();
     const ledger = createFeeLedger();
-    accrue(ledger, "A", feeForTrade(1_000, makeFeeTerms("T")));
+    accrue(ledger, "A", feeForTrade(1_000, makeFeeTerms("T")), {
+      treasury: "T",
+      leaderPayout: "L",
+    });
     s.saveFeeLedger(ledger);
     s.saveFeeLedger(ledger);
-    expect(s.loadFeeLedger().owed.get("A")).toBeCloseTo(2.5, 9);
+    expect(s.loadFeeLedger().owed.get("A")).toBeCloseTo(10, 9);
+    expect(s.loadFeeLedger().payableTo.get("L")).toBeCloseTo(5, 9);
     s.close();
   });
 });

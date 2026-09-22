@@ -84,6 +84,14 @@ export class Store {
         collected_usd REAL NOT NULL DEFAULT 0
       );
 
+      -- Who we owe, as opposed to who owes us. Separate because the two
+      -- answer different questions: this one drives the payout run.
+      CREATE TABLE IF NOT EXISTS payees (
+        address      TEXT PRIMARY KEY,
+        payable_usd  REAL NOT NULL DEFAULT 0,
+        paid_usd     REAL NOT NULL DEFAULT 0
+      );
+
       CREATE INDEX IF NOT EXISTS subscribers_leader_status ON subscribers (leader, status);
 
       CREATE TABLE IF NOT EXISTS applications (
@@ -222,6 +230,11 @@ export class Store {
       if (r.owed_usd > 0) ledger.owed.set(r.address, r.owed_usd);
       if (r.collected_usd > 0) ledger.collected.set(r.address, r.collected_usd);
     }
+    const payees = this.db.query(`SELECT * FROM payees`).all() as PayeeRow[];
+    for (const p of payees) {
+      if (p.payable_usd > 0) ledger.payableTo.set(p.address, p.payable_usd);
+      if (p.paid_usd > 0) ledger.paidTo.set(p.address, p.paid_usd);
+    }
     return ledger;
   }
 
@@ -230,10 +243,18 @@ export class Store {
       `INSERT INTO fees (address, owed_usd, collected_usd) VALUES (?, ?, ?)
        ON CONFLICT(address) DO UPDATE SET owed_usd = excluded.owed_usd, collected_usd = excluded.collected_usd`,
     );
+    const payeeStmt = this.db.query(
+      `INSERT INTO payees (address, payable_usd, paid_usd) VALUES (?, ?, ?)
+       ON CONFLICT(address) DO UPDATE SET payable_usd = excluded.payable_usd, paid_usd = excluded.paid_usd`,
+    );
     const addresses = new Set([...ledger.owed.keys(), ...ledger.collected.keys()]);
+    const payees = new Set([...ledger.payableTo.keys(), ...ledger.paidTo.keys()]);
     const tx = this.db.transaction(() => {
       for (const a of addresses) {
         stmt.run(a, ledger.owed.get(a) ?? 0, ledger.collected.get(a) ?? 0);
+      }
+      for (const p of payees) {
+        payeeStmt.run(p, ledger.payableTo.get(p) ?? 0, ledger.paidTo.get(p) ?? 0);
       }
     });
     tx();
@@ -384,6 +405,12 @@ interface FeeRow {
   address: string;
   owed_usd: number;
   collected_usd: number;
+}
+
+interface PayeeRow {
+  address: string;
+  payable_usd: number;
+  paid_usd: number;
 }
 
 function serialiseMemory(m: FollowMemory): string {

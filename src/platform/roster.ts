@@ -24,8 +24,22 @@ export interface RosterCandidate {
    * address to test against.
    */
   elsewhere?: { address: string; note: string }[];
+  /**
+   * Where this leader's share of trade fees is sent.
+   *
+   * Defaults to their trading address only because that is the one we are
+   * certain they control. Paying into the wallet being watched moves the very
+   * balances the strategy sizes against, so a separate address is strongly
+   * preferred and should be collected at listing.
+   */
+  payoutAddress?: string;
   /** Freeform note for the roster page. */
   note?: string;
+}
+
+/** Where a leader's fee share should be sent. */
+export function payoutAddressOf(c: RosterCandidate): string {
+  return c.payoutAddress ?? c.leader;
 }
 
 export const LAUNCH_ROSTER: RosterCandidate[] = [

@@ -13,7 +13,7 @@ import type { ApplicationDraft } from "./types";
  * when in fact nobody was listening is the worst of the available outcomes.
  */
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "";
+const BASE = (import.meta.env.VITE_FOMV_API as string | undefined)?.replace(/\/$/, "") ?? "";
 
 export const apiConfigured = BASE.length > 0;
 
@@ -36,7 +36,7 @@ export async function submitApplication(draft: ApplicationDraft): Promise<ApplyO
       ok: false,
       offline: true,
       errors: [
-        "Applications are not wired up on this deployment yet (VITE_API_URL is unset). " +
+        "Applications are not wired up on this deployment yet (VITE_FOMV_API is unset). " +
           "Book the call below and bring your wallet address to it — nothing is lost.",
       ],
     };

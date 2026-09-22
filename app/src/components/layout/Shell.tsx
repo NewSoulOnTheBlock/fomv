@@ -110,16 +110,6 @@ function Footer() {
             guardrails printed on each trader's page; it does not permit transfers to any other
             address, and you can withdraw it at any time.
           </p>
-          <div className="flex flex-wrap gap-x-2.5 gap-y-2">
-            {["non-custodial", "solana only", "no deposit"].map((t) => (
-              <span
-                key={t}
-                className="rounded-full border border-separator bg-white/[0.03] px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.1em] text-faint"
-              >
-                {t}
-              </span>
-            ))}
-          </div>
         </div>
         <nav className="flex gap-x-7 gap-y-2.5 text-[13px] md:flex-col" aria-label="Footer">
           <a href={href("/")} className="text-muted-foreground hover:text-foreground">

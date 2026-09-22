@@ -23,6 +23,7 @@ export type Route =
   | { name: "roster" }
   | { name: "trader"; leader: string }
   | { name: "apply" }
+  | { name: "docs" }
   | { name: "not-found"; path: string };
 
 export function parseRoute(hash: string): Route {
@@ -31,6 +32,7 @@ export function parseRoute(hash: string): Route {
 
   if (parts.length === 0) return { name: "roster" };
   if (parts[0] === "apply") return { name: "apply" };
+  if (parts[0] === "docs") return { name: "docs" };
   if (parts[0] === "t" && parts[1]) return { name: "trader", leader: decodeURIComponent(parts[1]) };
   return { name: "not-found", path };
 }

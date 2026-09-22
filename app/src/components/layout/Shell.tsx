@@ -23,6 +23,7 @@ import { href, type Route } from "@/lib/router";
 
 const NAV: { label: string; path: string; match: Route["name"][] }[] = [
   { label: "Roster", path: "/", match: ["roster", "trader"] },
+  { label: "How it works", path: "/docs", match: ["docs"] },
   { label: "Get listed", path: "/apply", match: ["apply"] },
 ];
 
@@ -60,7 +61,7 @@ function Header({ route }: { route: Route }) {
             decoding="async"
             className="block size-[30px] shrink-0"
           />
-          <span className="flex flex-col leading-none">
+          <span className="hidden flex-col leading-none sm:flex">
             <span className="text-[21px] font-bold leading-none tracking-[-0.03em]">
               FOM<span className="text-primary">V</span>
             </span>
@@ -68,7 +69,16 @@ function Header({ route }: { route: Route }) {
           </span>
         </a>
 
-        <nav className="flex shrink-0 items-center gap-1" aria-label="Main">
+        {/*
+          Three items plus a wordmark plus a sign-in control do not fit at
+          phone width. The nav scrolls inside itself rather than pushing the
+          page wider, which keeps every destination reachable without hiding
+          any of them behind a menu nobody opens.
+        */}
+        <nav
+          className="-mx-1 flex min-w-0 shrink items-center gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          aria-label="Main"
+        >
           {NAV.map((item) => {
             const active = item.match.includes(route.name);
             return (
@@ -114,6 +124,9 @@ function Footer() {
         <nav className="flex gap-x-7 gap-y-2.5 text-[13px] md:flex-col" aria-label="Footer">
           <a href={href("/")} className="text-muted-foreground hover:text-foreground">
             Roster
+          </a>
+          <a href={href("/docs")} className="text-muted-foreground hover:text-foreground">
+            How it works
           </a>
           <a href={href("/apply")} className="text-muted-foreground hover:text-foreground">
             Get listed

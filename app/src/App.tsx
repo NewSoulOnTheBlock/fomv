@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
 import { ApplyPage } from "@/components/apply/ApplyPage";
+import { DocsPage } from "@/components/docs/DocsPage";
 import { RosterPage } from "@/components/roster/RosterPage";
 import { TraderPage } from "@/components/trader/TraderPage";
 import { Shell } from "@/components/layout/Shell";
@@ -42,6 +43,10 @@ export function App() {
     <Shell route={route}>
       {route.name === "apply" ? (
         <ApplyPage />
+      ) : route.name === "docs" ? (
+        // Like the apply page, this reads nothing from app.json, so it stays
+        // reachable while that fetch is in flight or has failed.
+        <DocsPage />
       ) : error ? (
         <DataError message={error} />
       ) : !data ? (

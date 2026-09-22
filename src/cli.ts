@@ -10,6 +10,7 @@ import { makePolicy } from "./policy.js";
 import { initialState, tick } from "./runner.js";
 import { DEFAULT_SHORTLIST, scoreCandidate, shortlist } from "./platform/shortlist.js";
 import { buildTraderProfile } from "./platform/profile.js";
+import { priceFeedFromEnv } from "./marketdata/index.js";
 import { LAUNCH_ROSTER } from "./platform/roster.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import { SolanaLeaderWatcher as Watcher } from "./chains/solana/watcher.js";
@@ -187,8 +188,11 @@ ${bold("fomo-vaults")} — pooled copy-trading vaults over fomo leader wallets
             Poll continuously. Dry-run unless --live is set AND
             SOLANA_VAULT_PRIVATE_KEY is present.
 
-  ${bold("profile")}   [--candidates <addr,...>] [--pages 12] [--out state/profiles]
-            Build full ability profiles (Edge Score, 5 dimensions, 10 metrics)
+  ${bold("profile")}   [--candidates <addr,...>] [--pages 12] [--out state/profiles] [--no-prices]
+            Build full ability profiles (Edge Score, 5 dimensions, 10 metrics).
+            Historical candles come from FOMV_PRICE_FEED (default geckoterminal,
+            no key required; set BIRDEYE_API_KEY for better coverage).
+            --no-prices falls back to the trader's own fills and says so.
             and write them as JSON for the dashboard to serve.
 
   ${bold("score")}     --candidates <addr,addr,...> [--pages 8] [--seats 3] [--limit 25]
@@ -239,17 +243,20 @@ async function score() {
         }),
         data,
         maxPages,
-        onPage: (_n, total) => process.stdout.write(`  ${address.slice(0, 8)}…  ${total} swaps`),
+        onPage: (_n, total) => process.stdout.write(`
+  ${address.slice(0, 8)}…  ${total} swaps`),
       });
       console.log(
-        `  ${address.slice(0, 8)}…  ${String(res.trades).padStart(4)} swaps, ` +
+        `
+  ${address.slice(0, 8)}…  ${String(res.trades).padStart(4)} swaps, ` +
           `${res.coverage} tokens priced, book ${res.equityUsd === null ? "unknown" : usd(res.equityUsd)} ` +
           `→ ${dim(res.score.grade)}`,
       );
       if (res.truncated) console.log(`        ${dim("history truncated -- " + res.truncated)}`);
       scored.push({ address, score: res.score });
     } catch (err) {
-      console.log(`  ${address.slice(0, 8)}…  ${dim(`failed: ${String(err)}`)}`);
+      console.log(`
+  ${address.slice(0, 8)}…  ${dim(`failed: ${String(err)}`)}`);
     }
   }
 
@@ -329,6 +336,14 @@ async function profile() {
   const maxPages = Number(flags.pages ?? 12);
   await mkdir(outDir, { recursive: true });
 
+  // Candles are what make entry and exit quality measurements rather than
+  // restatements of the trade log. `--no-prices` is for working offline; the
+  // provenance records which path was taken either way.
+  const priceFeed = flags["no-prices"] ? null : priceFeedFromEnv();
+  console.log(
+    `  prices   ${priceFeed ? priceFeed.name : dim("observed fills only - entry and exit quality will be biased")}\n`,
+  );
+
   for (const address of addresses) {
     const handle = LAUNCH_ROSTER.find((r) => r.leader === address)?.handle;
     process.stdout.write(`  ${handle ?? address.slice(0, 8)}  `);
@@ -343,22 +358,40 @@ async function profile() {
         }),
         data,
         maxPages,
-        onPage: (_p, total) => process.stdout.write(`  ${handle ?? address.slice(0, 8)}  ${total} swaps`),
+        priceFeed,
+        onPage: (_p, total) =>
+          process.stdout.write(`\r  ${(handle ?? address.slice(0, 8)).padEnd(16)} ${total} swaps            `),
+        onCandles: (token: string, n: number) =>
+          process.stdout.write(
+            `\r  ${(handle ?? address.slice(0, 8)).padEnd(16)} candles ${token.slice(0, 6)}\u2026 ${n}        `,
+          ),
       });
 
       const file = `${outDir}/${address}.json`;
       await writeFile(file, JSON.stringify(res, null, 2));
       const p = res.profile;
+      const src = res.provenance.priceSource;
+      process.stdout.write("\r");
       console.log(
-        `  ${(handle ?? address.slice(0, 8)).padEnd(16)} ` +
+        `
+  ${(handle ?? address.slice(0, 8)).padEnd(16)} ` +
           `edge ${p.edgeScore === null ? " -- " : p.edgeScore.toFixed(0).padStart(3)}  ` +
           `${p.grade.padEnd(18)} ${res.provenance.trades} swaps, ` +
           `${p.core.closedEpisodes} closed  -> ${file}`,
       );
+      console.log(
+        `      ${dim(
+          src.degraded
+            ? "prices: observed fills only"
+            : `prices: ${src.feed} ${src.resolution}, ${src.candles} candles over ` +
+              `${src.tokensCovered}/${src.tokensRequested} tokens`,
+        )}`,
+      );
       for (const g of p.gaps) console.log(`      ${dim("gap: " + g)}`);
       for (const f of p.flags) console.log(`      ${dim("flag: " + f)}`);
     } catch (err) {
-      console.log(`  ${address.slice(0, 8)}  ${dim(`failed: ${String(err)}`)}`);
+      console.log(`
+  ${address.slice(0, 8)}  ${dim(`failed: ${String(err)}`)}`);
     }
   }
 }

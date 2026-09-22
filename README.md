@@ -243,6 +243,44 @@ Five dimensions, each 0-100, over the ten metrics beneath them:
 | Exit Skill | Share of the available move captured, premature-exit rate |
 | Consistency | Profitable weeks, variation between them, share of tokens profitable |
 
+### Where the prices come from
+
+Entry and exit quality ask what a token did *after* the trader acted, which a
+trade log cannot answer -- it needs prices at moments the trader did nothing.
+
+The original answer was the trader's own later fills. Real prices, and biased
+in a way that matters: a trader acts when price moves, so the only prices ever
+observed are the ones that provoked a trade. Capture ratio computed against
+that sample asks "did you sell near the best price you yourself traded at",
+which is close to a tautology, and `medianTimeToPeakSec` collapsed to zero
+because the entry fill was often the only observation in the window.
+
+`src/marketdata` replaces it with real candles, keeping the fills underneath:
+
+| | |
+|---|---|
+| Default | **GeckoTerminal**, no API key, ~30 calls/min |
+| Upgrade | **Birdeye** with `BIRDEYE_API_KEY` -- token-level rather than per-pool, so a token that migrated venues keeps one series |
+| Off | `FOMV_PRICE_FEED=none`, and the provenance says the grade rests on fills |
+
+Three things the layer does that are easy to get wrong:
+
+- **Picks the deepest pool, not the first.** GeckoTerminal serves OHLCV per
+  pool and does *not* return pools in liquidity order. Taking the first result
+  works on most tokens and silently prices the rest off a thin market.
+- **Peaks come from candle highs, point prices from candle closes.** A close is
+  the only value in a candle that is a price at a stated time; interpolating
+  between open and close would manufacture precision the feed does not have.
+- **Caches everything closed.** A closed candle is a fact, so only the open one
+  is refetched. Without that, re-running a profile costs the same minutes of
+  rate-limited paging as the first run, which is how a scoring window quietly
+  stays at five days for ever.
+
+Both layers are combined so point lookups take the first source that answers
+and **peaks take the maximum across both** -- each is a price that genuinely
+traded, and a fill inside a candle can reveal a spike its resolution smoothed
+away.
+
 ### Three rules that shape the numbers
 
 **Medians, not means.** This trader's mean ROI is 1352% and their median is

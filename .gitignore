@@ -9,3 +9,6 @@ state/
 
 .vercel
 .env*
+
+# npm was used once on a machine without bun; the project ships bun.lock.
+package-lock.json

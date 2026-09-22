@@ -88,6 +88,54 @@ describe("swap extraction from net balance deltas", () => {
     if (!r.ok) expect(r.reason).toBe("not-a-swap");
   });
 
+  test("a rent refund alongside a buy is plumbing, not a second leg", () => {
+    // The shape that made the extractor blind to most real routes: an
+    // aggregator opens a temporary token account, closes it, and refunds
+    // ~0.002 SOL. At $150/SOL that is 30c -- far above the dust floor -- so it
+    // used to read as a second "in" and sink an ordinary USDC -> BONK buy.
+    const r = run([d(USDC_MINT, -400), d(SOL_MINT, 0.00204, 9), d(BONK, 10_000_000, 5)]);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.trade.side).toBe("buy");
+    expect(r.trade.quote.address).toBe(USDC_MINT);
+    expect(r.trade.usdValue).toBeCloseTo(400, 9);
+    // The refund must not be counted as part of what was bought.
+    expect(r.trade.assetAmount).toBeCloseTo(10_000_000, 6);
+  });
+
+  test("the same refund on the way out still reads as a sell", () => {
+    const r = run([d(BONK, -10_000_000, 5), d(USDC_MINT, 400), d(SOL_MINT, 0.00204, 9)]);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.trade.side).toBe("sell");
+    expect(r.trade.quote.address).toBe(USDC_MINT);
+  });
+
+  test("stripping plumbing never rescues a genuine batch", () => {
+    // Two real buys plus a refund. Dropping the SOL leg still leaves two ins,
+    // so the transaction is refused rather than half-mirrored.
+    const r = run([d(USDC_MINT, -400), d(SOL_MINT, 0.00204, 9), d(BONK, 10_000_000, 5), d(WIF, 60, 6)]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/^multi-leg/);
+  });
+
+  test("a small but genuine SOL quote leg is not mistaken for plumbing", () => {
+    // 0.01 SOL is inside the plumbing bound, but it is the only thing spent.
+    // Dropping it would leave no quote at all, so the rule must not fire.
+    const r = run([d(SOL_MINT, -0.01, 9), d(BONK, 10_000, 5)]);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.trade.side).toBe("buy");
+    expect(r.trade.quote.address).toBe(SOL_MINT);
+    expect(r.trade.usdValue).toBeCloseTo(1.5, 9);
+  });
+
+  test("the multi-leg reason reports its counts the right way round", () => {
+    const r = run([d(USDC_MINT, -400), d(SOL_MINT, -1, 9), d(BONK, 10_000_000, 5), d(WIF, 60, 6)]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toBe("multi-leg:2out/2in");
+  });
+
   test("sub-cent dust legs are filtered before classification", () => {
     // A stray 0.2c of USDC alongside a real SOL -> BONK buy must not turn the
     // transaction into an unclassifiable two-out batch.

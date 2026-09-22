@@ -24,6 +24,16 @@ export interface ExtractArgs {
   priceUsd: (mint: string) => number | undefined;
   /** Ignore legs whose absolute USD value is under this, to filter fee dust. */
   dustUsd?: number;
+  /**
+   * Largest native-SOL movement still treated as plumbing rather than a trade
+   * leg, in SOL.
+   *
+   * Sized off account rent: a token account costs ~0.00204 SOL, so a route
+   * that opens and closes a few temporary accounts refunds a few thousandths
+   * of a SOL. The default leaves room for several closures while staying an
+   * order of magnitude below any trade a vault would bother mirroring.
+   */
+  solPlumbingSol?: number;
 }
 
 export type ExtractResult =
@@ -61,15 +71,40 @@ export function extractSwap(args: ExtractArgs): ExtractResult {
     return px === undefined ? d.amount !== 0 : Math.abs(d.amount * px) >= dust;
   });
 
-  const outs = significant.filter((d) => d.amount < 0);
-  const ins = significant.filter((d) => d.amount > 0);
+  let outs = significant.filter((d) => d.amount < 0);
+  let ins = significant.filter((d) => d.amount > 0);
 
   if (outs.length === 0 || ins.length === 0) return { ok: false, reason: "not-a-swap" };
+
   if (outs.length > 1 || ins.length > 1) {
-    // A genuine batch of independent swaps in one transaction. Mirroring a
-    // guess here is worse than skipping and letting the next poll catch the
-    // resulting position change.
-    return { ok: false, reason: `multi-leg:${outs.length}in/${ins.length}out` };
+    // Before calling this a batch, strip native-SOL plumbing.
+    //
+    // A route that opens a temporary token account and closes it again refunds
+    // the rent, which lands as a small *positive* SOL delta beside the real
+    // swap. At a cent of dust tolerance that refund reads as a second leg, and
+    // an ordinary `USDC -> TOKEN` buy gets thrown away as ambiguous. Most
+    // aggregator routes close an account, so this is the common case, not the
+    // exotic one.
+    //
+    // Only applied when it actually resolves the ambiguity: if dropping the
+    // SOL legs does not leave exactly one in and one out, the transaction
+    // really is a batch and is still refused. That keeps the rule from
+    // swallowing a genuine small SOL leg, because discarding one there would
+    // leave no quote at all rather than a tidy answer.
+    const plumbingMax = args.solPlumbingSol ?? 0.02;
+    const isPlumbing = (d: BalanceDelta) => d.mint === SOL_MINT && Math.abs(d.amount) <= plumbingMax;
+    const trimmedOuts = outs.filter((d) => !isPlumbing(d));
+    const trimmedIns = ins.filter((d) => !isPlumbing(d));
+
+    if (trimmedOuts.length === 1 && trimmedIns.length === 1) {
+      outs = trimmedOuts;
+      ins = trimmedIns;
+    } else {
+      // A genuine batch of independent swaps in one transaction. Mirroring a
+      // guess here is worse than skipping and letting the next poll catch the
+      // resulting position change.
+      return { ok: false, reason: `multi-leg:${outs.length}out/${ins.length}in` };
+    }
   }
 
   const spent = outs[0]!;

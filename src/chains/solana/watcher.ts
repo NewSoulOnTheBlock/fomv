@@ -11,6 +11,24 @@ export interface WatcherOptions {
   batchSize?: number;
   /** Attempts per batch before giving up on this poll. */
   maxRetries?: number;
+  /**
+   * Highest transaction version this client will accept.
+   *
+   * Not cosmetic: the RPC refuses to return a transaction newer than the
+   * declared version rather than degrading, so one modern transaction in a
+   * page fails the whole page. Raise it as the chain does; there is no benefit
+   * to declaring support for less than we can actually decode, because the
+   * parsed representation is plain JSON either way.
+   */
+  maxTxVersion?: number;
+  /**
+   * Pause between transaction batches, in ms.
+   *
+   * Backfill hammers an endpoint far harder than polling does -- a scoring run
+   * issues in seconds what a watcher spreads over hours. Spacing the calls out
+   * costs less wall time than absorbing the 429s that follow.
+   */
+  throttleMs?: number;
   /** Called for every transaction that was not recognised as a swap. */
   onSkip?: (signature: string, reason: string) => void;
 }
@@ -76,32 +94,122 @@ export class SolanaLeaderWatcher implements LeaderWatcher {
     const ordered = sigs.filter((s) => s.err === null).reverse();
     const newestCursor = sigs[0]?.signature ?? cursor;
 
+    const trades = await this.tradesFrom(ordered);
+    return { trades, cursor: newestCursor };
+  }
+
+  /**
+   * Walk *backwards* through a leader's history, oldest trade returned first.
+   *
+   * Deliberately not `poll`. Polling asks "what happened since the cursor" and
+   * pages with `until`, which is the right shape for mirroring and the wrong
+   * one for backfill: it can only ever reach forward to the present. Scoring
+   * needs the opposite direction, so this pages with `before` and stops when
+   * the chain runs out or the page budget does.
+   */
+  async history(
+    opts: {
+      pages?: number;
+      onPage?: (page: number, trades: number) => void;
+      /** Called when paging stopped early, with the reason it stopped. */
+      onTruncated?: (reason: string) => void;
+    } = {},
+  ): Promise<LeaderTrade[]> {
+    const owner = new PublicKey(this.leader);
+    const retries = this.opts.maxRetries ?? 4;
+    const pages = opts.pages ?? 8;
+    const limit = this.opts.limit ?? 50;
+
+    const all: LeaderTrade[] = [];
+    let before: string | undefined;
+
+    for (let page = 0; page < pages; page++) {
+      const sigs = await withRetry(
+        () => this.conn.getSignaturesForAddress(owner, { before, limit }),
+        retries,
+        "getSignaturesForAddress",
+      );
+      if (sigs.length === 0) break;
+
+      // Page from the oldest signature of this page, so the next request
+      // continues further back rather than repeating this one.
+      before = sigs[sigs.length - 1]?.signature;
+
+      const ordered = sigs.filter((x) => x.err === null).reverse();
+      try {
+        all.push(...(await this.tradesFrom(ordered)));
+      } catch (err) {
+        // Keep what was already decoded. A partial history still scores -- the
+        // metrics report their own episode counts -- whereas throwing discards
+        // every page that did succeed and reports nothing at all.
+        opts.onTruncated?.(`stopped at page ${page + 1}: ${String(err)}`);
+        break;
+      }
+      opts.onPage?.(page + 1, all.length);
+
+      if (sigs.length < limit) break;
+    }
+
+    return all.sort((a, b) => a.ts - b.ts);
+  }
+
+  /**
+   * Fetch and decode one page of signatures into swaps.
+   *
+   * Shared by `poll` and `history` so the two can never disagree about what
+   * counts as a trade -- a backfill that classified swaps differently from the
+   * live path would score a leader on behaviour the vault would not mirror.
+   */
+  private async tradesFrom(
+    ordered: { signature: string }[],
+  ): Promise<LeaderTrade[]> {
+    if (ordered.length === 0) return [];
+    const retries = this.opts.maxRetries ?? 4;
+
     // Batch in small chunks: a single 50-signature request is one oversized
     // call that shared endpoints reject outright. batchSize 1 drops to
     // individual getParsedTransaction calls, which several free endpoints
     // serve happily while refusing the batched form entirely.
     const batchSize = this.opts.batchSize ?? 5;
-    const cfg = { maxSupportedTransactionVersion: 0 as const, commitment: "confirmed" as const };
+    const throttleMs = this.opts.throttleMs ?? 0;
+    const cfg = {
+      maxSupportedTransactionVersion: this.opts.maxTxVersion ?? 1,
+      commitment: "confirmed" as const,
+    };
     const txs: Awaited<ReturnType<Connection["getParsedTransactions"]>> = [];
 
-    if (batchSize <= 1) {
-      for (const s of ordered) {
-        const tx = await withRetry(
-          () => this.conn.getParsedTransaction(s.signature, cfg),
-          retries,
-          "getParsedTransaction",
-        );
-        txs.push(tx);
+    // Fetch one signature, or record it as unreadable.
+    //
+    // `null` rather than a throw, because the slot must stay aligned with
+    // `ordered`: the loop below pairs transactions to signatures by index, and
+    // dropping an entry would silently attribute every later transaction to
+    // the wrong signature. An unreadable transaction is already handled
+    // downstream as a skip.
+    const fetchOne = async (signature: string) => {
+      try {
+        return await withRetry(() => this.conn.getParsedTransaction(signature, cfg), retries, "getParsedTransaction");
+      } catch (err) {
+        this.opts.onSkip?.(signature, `undecodable: ${String(err)}`);
+        return null;
       }
+    };
+
+    if (batchSize <= 1) {
+      for (const s of ordered) txs.push(await fetchOne(s.signature));
     } else {
       for (let i = 0; i < ordered.length; i += batchSize) {
+        if (i > 0 && throttleMs > 0) await new Promise((r) => setTimeout(r, throttleMs));
         const chunk = ordered.slice(i, i + batchSize).map((s) => s.signature);
-        const got = await withRetry(
-          () => this.conn.getParsedTransactions(chunk, cfg),
-          retries,
-          "getParsedTransactions",
-        );
-        txs.push(...got);
+        try {
+          txs.push(...(await withRetry(() => this.conn.getParsedTransactions(chunk, cfg), retries, "getParsedTransactions")));
+        } catch {
+          // A batch is all-or-nothing: one transaction the client cannot
+          // decode -- a version newer than this library understands, say --
+          // fails every signature alongside it. Retrying individually costs
+          // one transaction instead of the whole chunk, and keeps a single
+          // unusual transaction from blinding the vault to the leader.
+          for (const signature of chunk) txs.push(await fetchOne(signature));
+        }
       }
     }
 
@@ -150,6 +258,6 @@ export class SolanaLeaderWatcher implements LeaderWatcher {
       else this.opts.onSkip?.(sig, res.reason);
     }
 
-    return { trades, cursor: newestCursor };
+    return trades;
   }
 }

@@ -4,9 +4,15 @@
 node_modules
 app/node_modules
 app/dist
-test
-docs
-state
-onchain
+
+# Anchored with a leading slash, and that is load-bearing. These patterns
+# follow .gitignore syntax, where a bare name matches a directory at ANY
+# depth -- so `docs` also matched app/src/components/docs/ and deleted the
+# DocsPage from the upload, failing the build with a missing module rather
+# than anything that pointed at this file.
+/test
+/docs
+/state
+/onchain
 .env
 .env.*

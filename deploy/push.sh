@@ -39,7 +39,12 @@ rsync -az --delete --exclude 'node_modules' \
 log "Installing dependencies"
 # --production: the server runs TypeScript through bun directly, so nothing
 # here is built and the dev dependencies are never reached.
-ssh "$TARGET" "cd $APP_DIR && bun install --frozen-lockfile --production 2>&1 | tail -3 && chown -R fomv:fomv $APP_DIR/node_modules $APP_DIR/src"
+# rsync writes as the ssh user, so everything it lands arrives owned by root
+# with the workstation's uid on the plain files. Claim the lot for the service
+# account -- but never .env or state/, which the server owns and this script
+# has no business touching.
+ssh "$TARGET" "cd $APP_DIR && bun install --frozen-lockfile --production 2>&1 | tail -3 && \
+  find $APP_DIR -mindepth 1 -maxdepth 1 ! -name .env ! -name state -exec chown -R fomv:fomv {} +"
 
 log "Restarting, if it was already running"
 # Started for the first time by hand after the environment is filled in; from

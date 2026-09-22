@@ -2,9 +2,8 @@ import { LogOut } from "lucide-react";
 
 import { CopyAddress } from "@/components/CopyAddress";
 import { SignInButton } from "@/components/SignInButton";
-import { Tag } from "@/components/term";
+import { Lamp } from "@/components/term";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth";
 
 /**
@@ -12,10 +11,13 @@ import { useAuth } from "@/lib/auth";
  *
  * Shows the delegation state rather than only the session, because on this
  * product those are different facts with different consequences. Being signed
- * in means we know who you are; being delegated means a server is permitted to
- * sign trades on your wallet. Somebody who has granted that should be able to
- * see it from any page without going looking, which is the whole reason it is
- * up here and not only on the trader page where it was granted.
+ * in means we know who you are; being authorised means a server may sign
+ * trades on your wallet. Someone who has granted that should be able to see it
+ * from any page without going looking, which is why it is up here and not only
+ * on the trader page where it was granted.
+ *
+ * When nothing is authorised there is no indicator at all. An idle state does
+ * not need a label saying it is idle.
  */
 export function AccountChip() {
   const auth = useAuth();
@@ -23,28 +25,17 @@ export function AccountChip() {
   if (!auth.authenticated) return <SignInButton />;
 
   return (
-    <div className="flex items-center gap-2">
-      {auth.isDelegated ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span>
-              <Tag tone="live">mirroring</Tag>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            FOMV may sign swaps on this wallet. Revoke from any trader's page.
-          </TooltipContent>
-        </Tooltip>
-      ) : (
-        <Tag className="hidden sm:inline-flex">not following</Tag>
+    <div className="flex items-center gap-3">
+      {auth.isDelegated && (
+        <Lamp tone="pos" className="hidden sm:inline-flex">
+          mirroring
+        </Lamp>
       )}
 
       {auth.walletAddress ? (
-        // Copyable, because the address is truncated here and this is the only
-        // place in the product it is shown at all.
         <CopyAddress address={auth.walletAddress} className="hidden sm:inline-flex" />
       ) : (
-        <span className="hidden sm:inline font-mono text-[12px] text-muted-foreground">
+        <span className="hidden font-mono text-[12px] text-muted-foreground sm:inline">
           wallet pending…
         </span>
       )}

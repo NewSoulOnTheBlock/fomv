@@ -58,8 +58,8 @@ export function App() {
 
 function Loading() {
   return (
-    <div className="pt-16 space-y-4">
-      <Skeleton className="h-10 w-72" />
+    <div className="space-y-5 pt-20">
+      <Skeleton className="h-14 w-96 max-w-full" />
       <Skeleton className="h-4 w-full max-w-xl" />
       <Skeleton className="h-44 w-full mt-10" />
     </div>

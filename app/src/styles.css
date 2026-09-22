@@ -2,58 +2,70 @@
 @import "tw-animate-css";
 
 /*
- * FOMV — one dark terminal theme, no light mode.
+ * FOMV — amber phosphor on carbon.
  *
- * The palette is amber-on-black on purpose. Every copy-trading site on Solana
- * is purple-and-green, and the thing this product sells is not excitement: it
- * is a graded roster, published guardrails and a fee you can read before you
- * click. A trading terminal is what that looks like.
+ * # The idea the surface has to carry
  *
- * Amber is the *interface* accent — it marks what you can act on. Green and
- * red are reserved for signed quantities, so a number is never coloured for
- * emphasis and a control is never coloured like a P&L.
+ * This product grades traders and publishes the grade whatever it says. So the
+ * page should not look like an app selling a service; it should look like an
+ * instrument printing a reading, and like the printed assay that comes out of
+ * one. That is where the two type families come from: a high-contrast serif
+ * for anything asserted in prose, and a monospace for everything measured.
+ * Nothing measured is ever set in the serif, and nothing asserted is ever set
+ * in the mono. The page is legible as a document before it is read as one.
+ *
+ * # The colour rule, and it is absolute
+ *
+ * Amber is the instrument: controls, marks, the needle. Green and red belong
+ * to signed quantities and nothing else. A statistic is therefore never
+ * coloured for emphasis and a button is never coloured like a profit. When
+ * everything on a trading page can glow, nothing on it means anything.
  */
 
 @custom-variant dark (&:is(.dark *));
 
 :root,
 .dark {
-  /* shadcn's contract. Every registry component reads these and nothing else. */
-  --background: #08090b;
-  --foreground: #e6e9ee;
-  --card: #0b0d11;
-  --card-foreground: #e6e9ee;
-  --popover: #0e1116;
-  --popover-foreground: #e6e9ee;
-  --primary: #ffb224;
-  --primary-foreground: #120c02;
-  --secondary: #14181e;
-  --secondary-foreground: #c9d0d9;
-  --muted: #10141a;
-  --muted-foreground: #79818f;
-  --accent: #161b22;
-  --accent-foreground: #e6e9ee;
-  --destructive: #f0605f;
-  --border: #1a1e25;
-  --input: #1a1e25;
-  --ring: #ffb224;
+  /* shadcn's contract. Registry components read these and nothing else. */
+  --background: #08080b;
+  --foreground: #e9e6df;
+  --card: #0b0b0f;
+  --card-foreground: #e9e6df;
+  --popover: #0e0e13;
+  --popover-foreground: #e9e6df;
+  --primary: #ffae1a;
+  --primary-foreground: #150d00;
+  --secondary: #16161c;
+  --secondary-foreground: #c6c2b8;
+  --muted: #101015;
+  --muted-foreground: #7d7a73;
+  --accent: #17171e;
+  --accent-foreground: #e9e6df;
+  --destructive: #ef5d54;
+  --border: #1c1c23;
+  --input: #1c1c23;
+  --ring: #ffae1a;
 
-  /* Square by default. A 2px radius reads as machined rather than soft. */
+  /* Square. A 2px radius reads as machined rather than soft. */
   --radius: 0.125rem;
 
-  /* FOMV's own tokens, for things shadcn has no opinion about. */
-  --grid: #11151b;
-  --faint: #525a66;
-  --pos: #3ad598;
-  --neg: #f0605f;
-  --warn: #e9b949;
+  /* FOMV's own, for things shadcn has no opinion about. */
+  --amber: #ffae1a;
+  --amber-deep: #b87400;
+  --amber-glow: #ffae1a33;
+  --grid: #14141a;
+  --rule: #1c1c23;
+  --faint: #55534e;
+  --pos: #35d29a;
+  --neg: #ef5d54;
+  --warn: #e9b23d;
 
-  /* Score bands, 0-100. `none` is "not measured", never "measured as bad". */
-  --band-good: #3ad598;
-  --band-ok: #a9d84b;
-  --band-warn: #e9b949;
-  --band-bad: #f0605f;
-  --band-none: #454c58;
+  /* Score bands. `none` is "not measured", never "measured as bad". */
+  --band-good: #35d29a;
+  --band-ok: #a8cf4a;
+  --band-warn: #e9b23d;
+  --band-bad: #ef5d54;
+  --band-none: #3e3c38;
 }
 
 @theme inline {
@@ -76,14 +88,16 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  --color-amber: var(--amber);
   --color-grid: var(--grid);
   --color-faint: var(--faint);
   --color-pos: var(--pos);
   --color-neg: var(--neg);
   --color-warn: var(--warn);
 
-  --font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --font-display: "Bodoni Moda", ui-serif, "Didot", Georgia, serif;
+  --font-sans: "Spline Sans", ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --radius-sm: 2px;
   --radius-md: 2px;
@@ -97,92 +111,130 @@
   }
 
   html {
-    /* The header strip is sticky; anchors must not land underneath it. */
-    scroll-padding-top: 6rem;
+    scroll-padding-top: 7rem;
+    /* Deep, warm black with a faint amber cast from the top, so the page has
+       a light source rather than being a flat fill. */
+    background:
+      radial-gradient(120% 70% at 50% -20%, #14100a 0%, transparent 60%),
+      var(--background);
+    background-attachment: fixed;
   }
 
   body {
     margin: 0;
-    background: var(--background);
+    background: transparent;
     color: var(--foreground);
     font-family: var(--font-sans);
     font-size: 14px;
-    line-height: 1.55;
+    line-height: 1.6;
+    font-feature-settings: "ss01", "cv05";
     -webkit-font-smoothing: antialiased;
-    font-feature-settings: "cv11", "ss01";
   }
 
   /*
-   * Numbers are tabular everywhere, without being asked.
-   *
-   * Column-aligned digits are the difference between a table you can scan and
-   * one you have to read. Proportional digits in a stat grid make the eye
-   * re-find the decimal point on every row.
+   * Column-aligned digits, everywhere, without being asked. It is the
+   * difference between a table you can scan and one you have to read.
    */
   .font-mono,
   [class*="font-mono"],
-  table,
   input,
-  textarea {
+  textarea,
+  table {
     font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+
+  h1, h2, h3, h4 {
+    font-weight: 400;
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--primary) 30%, transparent);
-    color: var(--foreground);
+    background: var(--amber);
+    color: #150d00;
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
   }
   ::-webkit-scrollbar-track {
-    background: var(--background);
+    background: #0a0a0d;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1e232b;
-    border: 2px solid var(--background);
+    background: #23232b;
+    border: 3px solid #0a0a0d;
+    border-radius: 99px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #2b313b;
-  }
-
-  /* Tailwind's preflight zeroes headings; the app states its own scale. */
-  h1, h2, h3, h4 {
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    background: #34343e;
   }
 }
 
 @layer components {
+  /* ---------------------------------------------------------- typography -- */
+
   /*
-   * The label style that carries the whole look: small, uppercase, tracked,
-   * monospace, dim. Used for every key in every key/value pair so the eye can
-   * separate "what this is" from "what it says" without a colon.
+   * The display face, for anything the product asserts in words.
+   *
+   * Bodoni is a didone: hairline thins against heavy stems. On a dark ground
+   * those hairlines are the first thing to go, so it is only ever set large
+   * and never below about 18px -- past that it is not elegant, it is broken.
+   * The optical-size axis is pinned high for the same reason: the display cut
+   * has the contrast that makes the face worth using at all.
+   *
+   * Why a didone on a trading product: this page publishes a grade on someone
+   * and stands behind it. An engraved certificate is the right register, and
+   * no other crypto site looks remotely like one.
+   */
+  .display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-variation-settings: "opsz" 72;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    line-height: 1.02;
+  }
+
+  /* The one italic in the product, for an aside inside a headline. */
+  .display-em {
+    font-style: italic;
+    color: var(--amber);
+  }
+
+  /*
+   * The label that carries the whole look: small, tracked, monospace, dim.
+   * Every key in every key/value pair, so the eye separates "what this is"
+   * from "what it says" without needing a colon.
    */
   .term-label {
     font-family: var(--font-mono);
     font-size: 10px;
     line-height: 1.2;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--faint);
   }
 
-  /* A section heading: a marker, the name, then a rule to the right margin. */
+  /* An engraved rule: one hairline, one highlight, as on a machined panel. */
+  .engraved {
+    border-top: 1px solid #000;
+    box-shadow: 0 1px 0 var(--rule);
+  }
+
+  /* A section heading: index, name, then a rule to the right margin. */
   .term-rule {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.85rem;
   }
   .term-rule::after {
     content: "";
     flex: 1;
     height: 1px;
-    background: var(--grid);
+    background: linear-gradient(to right, var(--rule), transparent);
   }
 
-  /* Dotted leader between a key and its value, as in a printed statement. */
+  /* Dotted leader between a key and its value, as on a printed statement. */
   .term-leader {
     flex: 1;
     margin: 0 0.6rem;
@@ -191,38 +243,129 @@
   }
 
   /*
-   * A faint engineering grid, only behind the page header.
+   * Phosphor bloom on the one figure a panel exists to show.
    *
-   * Full-page it becomes noise the moment real data sits on it; behind 80
-   * pixels of chrome it reads as instrumentation and then gets out of the way.
+   * Used on the Edge Score and nowhere else. A glow that appears on every
+   * number is a background; a glow that appears on one is a readout.
    */
+  .bloom {
+    text-shadow:
+      0 0 14px var(--amber-glow),
+      0 0 46px color-mix(in oklab, var(--amber) 14%, transparent);
+  }
+
+  /* A faint engineering grid, behind page chrome only. */
   .term-grid {
     background-image:
       linear-gradient(to right, var(--grid) 1px, transparent 1px),
       linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
-    background-size: 32px 32px;
+    background-size: 34px 34px;
     background-position: center;
     -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
     mask-image: linear-gradient(to bottom, #000, transparent);
   }
 
-  /* Hairline separators inside a dense row of figures. */
   .term-divided > * + * {
     border-left: 1px solid var(--grid);
   }
 
   .term-blink {
-    animation: term-blink 1.6s step-end infinite;
+    animation: term-blink 1.7s step-end infinite;
+  }
+
+  /*
+   * Film grain over the whole page.
+   *
+   * A flat black background on a wide screen bands visibly and reads as a
+   * surface with nothing on it. A very slight grain gives it a material, and
+   * it is the cheapest possible way to do so: one fixed layer, no repaint, no
+   * pointer events.
+   */
+  .grain::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0.4;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+  }
+
+  /* A vignette, so the page has edges rather than running off the screen. */
+  .vignette::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    pointer-events: none;
+    background: radial-gradient(130% 100% at 50% 40%, transparent 55%, #000 100%);
+    opacity: 0.55;
+  }
+
+  /* ------------------------------------------------------------- motion -- */
+
+  /*
+   * One orchestrated page load rather than motion scattered through the page.
+   *
+   * Elements declare a step and rise into place a beat apart. It reads as an
+   * instrument settling, which is the whole metaphor, and it happens once.
+   */
+  .rise {
+    animation: rise 0.62s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .step-1 { animation-delay: 0.04s; }
+  .step-2 { animation-delay: 0.12s; }
+  .step-3 { animation-delay: 0.2s; }
+  .step-4 { animation-delay: 0.28s; }
+  .step-5 { animation-delay: 0.36s; }
+  .step-6 { animation-delay: 0.44s; }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
 @keyframes term-blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.15; }
+  50% { opacity: 0.12; }
+}
+
+/* The pulse that travels the mirror diagram in the hero. */
+@keyframes travel {
+  from { offset-distance: 0%; opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  to   { offset-distance: 100%; opacity: 0; }
+}
+
+/* The Edge polygon drawing itself once, like a plotter. */
+@keyframes plot {
+  from { stroke-dashoffset: var(--plot-length); }
+  to { stroke-dashoffset: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .term-blink {
+  .term-blink,
+  .rise {
     animation: none;
+  }
+  .rise {
+    opacity: 1;
+    transform: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

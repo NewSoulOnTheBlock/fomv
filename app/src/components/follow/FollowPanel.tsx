@@ -3,7 +3,8 @@ import { Check, ShieldCheck, X } from "lucide-react";
 
 import { DEFAULT_FEE_TERMS, MAX_TRADE_FEE_BPS } from "@engine/follow/fees.js";
 import { SignInButton } from "@/components/SignInButton";
-import { Address, Callout, LeaderRow, Panel, PanelBody, PanelHead, Tag } from "@/components/term";
+import { CopyAddress } from "@/components/CopyAddress";
+import { Callout, Lamp, LeaderRow, Panel, PanelBody, PanelHead } from "@/components/term";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
@@ -81,7 +82,7 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
     <Panel>
       <PanelHead
         label={`follow ${vault.handle}`}
-        aside={following ? <Tag tone="live">active</Tag> : undefined}
+        aside={following ? <Lamp tone="pos">active</Lamp> : undefined}
       />
 
       {!auth.authenticated ? (
@@ -204,7 +205,7 @@ function NotFollowing({
 
         <div className="flex items-center justify-between gap-3">
           <span className="term-label">your wallet</span>
-          <Address value={address} />
+          <CopyAddress address={address} lead={6} tail={6} />
         </div>
 
         <p className="text-[11px] leading-relaxed text-faint">
@@ -240,7 +241,7 @@ function Following({
       </div>
 
       <div className="border-t border-border p-4">
-        <LeaderRow label="Your wallet" value={<Address value={address} lead={4} tail={4} />} />
+        <LeaderRow label="Your wallet" value={<CopyAddress address={address} lead={6} tail={6} />} />
         <LeaderRow label="Max position in one token" value={bps(1500)} />
         <LeaderRow label="Fee per mirrored trade" value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} />
         <LeaderRow label={`— of which to ${vault.handle}`} value={splitLabel()} />

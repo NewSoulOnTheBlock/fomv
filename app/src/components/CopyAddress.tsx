@@ -20,7 +20,24 @@ import { shortAddress } from "@/lib/format";
 
 type State = "idle" | "copied" | "failed";
 
-export function CopyAddress({ address, className }: { address: string; className?: string }) {
+export function CopyAddress({
+  address,
+  lead = 4,
+  tail = 4,
+  className,
+}: {
+  address: string;
+  /**
+   * How much of the address to show either side of the ellipsis.
+   *
+   * Four is right in a header, where the chip is an identifier you already
+   * know. It is too few on a trader page, where the address *is* the subject
+   * and a reader may be checking it against a block explorer.
+   */
+  lead?: number;
+  tail?: number;
+  className?: string;
+}) {
   const [state, setState] = useState<State>("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -57,7 +74,7 @@ export function CopyAddress({ address, className }: { address: string; className
         className,
       )}
     >
-      <span>{shortAddress(address, 4, 4)}</span>
+      <span>{shortAddress(address, lead, tail)}</span>
       {state === "copied" ? (
         <Check className="size-3.5 shrink-0 text-[var(--band-good)]" aria-hidden />
       ) : (

@@ -2,22 +2,25 @@ import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
 import { Audit } from "@/components/trader/Audit";
+import { EdgePentagon } from "@/components/viz/EdgePentagon";
 import { FollowPanel } from "@/components/follow/FollowPanel";
-import { Address, Callout, Panel, PanelBody, PanelHead, Tag } from "@/components/term";
+import { CopyAddress } from "@/components/CopyAddress";
+import { Callout, FactLine, Panel, PanelBody, PanelHead, Stat } from "@/components/term";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { relative, shortAddress } from "@/lib/format";
+import { dimensionsFor } from "@/lib/dimensions";
+import { bandColor, count, pct, ratio, relative, score, shortAddress, signOf, signedUsd } from "@/lib/format";
 import { href } from "@/lib/router";
 import type { AppData, TraderProfile } from "@/lib/types";
 
 /**
- * One trader: the audit on the left, the decision on the right.
+ * One trader: the instrument first, the evidence under it, the decision beside.
  *
- * The follow panel is sticky on wide screens and sits directly under the
- * masthead on narrow ones. That placement is the point of the page — the
- * argument for following someone is the audit, so the control to do it has to
- * stay reachable while the argument is being read, rather than waiting at the
- * bottom of two thousand pixels of metrics.
+ * The pentagon is given a full-width band at the top rather than a card,
+ * because it is the page's thesis and everything below is support. The follow
+ * panel is sticky on wide screens: the argument for following someone is two
+ * thousand pixels long, and the control to act on it should not be waiting at
+ * the bottom of them.
  */
 export function TraderPage({ data, leader }: { data: AppData; leader: string }) {
   const entry = data.roster.find((r) => r.leader === leader);
@@ -35,7 +38,7 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
 
   if (!entry) {
     return (
-      <div className="pt-12">
+      <div className="pt-16">
         <Panel>
           <PanelHead label="unknown trader" />
           <PanelBody className="space-y-4">
@@ -55,8 +58,11 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
     );
   }
 
+  const p = profile?.profile;
+  const c = p?.core;
+
   return (
-    <div className="pt-6">
+    <div className="pt-7">
       <a
         href={href("/")}
         className="inline-flex items-center gap-1 font-mono text-[12px] text-muted-foreground hover:text-foreground"
@@ -65,50 +71,77 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
         roster
       </a>
 
-      <div className="mt-4 pb-6 border-b border-border flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-[28px] leading-none font-semibold tracking-[-0.03em]">
-              {entry.handle}
-            </h1>
-            <Tag>{entry.chain}</Tag>
-            <Tag tone={entry.status === "live" ? "live" : "neutral"}>{entry.status}</Tag>
+      {/* The instrument band. */}
+      <section className="rise step-1 mt-5 border-b border-border pb-10">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="min-w-0">
+            <h1 className="display text-[clamp(2.5rem,5.5vw,3.75rem)]">{entry.handle}</h1>
+            <FactLine
+              className="mt-3"
+              facts={[
+                entry.chain,
+                `listing ${entry.status}`,
+                profile && `audited ${relative(profile.provenance.computedAtMs)}`,
+                profile && `${count(profile.provenance.trades)} swaps decoded`,
+              ]}
+            />
+            <div className="mt-4">
+              <CopyAddress address={entry.leader} lead={10} tail={10} />
+            </div>
+
+            <div className="mt-9 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
+              <Stat
+                label="edge score"
+                value={
+                  <span className="bloom" style={{ color: bandColor(p?.edgeScore ?? null) }}>
+                    {score(p?.edgeScore ?? null)}
+                  </span>
+                }
+                size="lg"
+                sub={p?.grade === "insufficient-data" ? "not enough data to grade" : `grade ${p?.grade ?? "—"}`}
+              />
+              <Stat label="profit factor" value={ratio(c?.profitFactor)} sub={`win rate ${pct(c?.winRate ?? null)}`} />
+              <Stat
+                label="max drawdown"
+                value={pct(c?.maxDrawdown ?? null)}
+                sub={`${count(c?.closedEpisodes)} complete round trips`}
+              />
+              <Stat
+                label="realised p&l"
+                value={signedUsd(c?.realizedPnlUsd ?? null, { compact: true })}
+                tone={signOf(c?.realizedPnlUsd) ? `var(--${signOf(c?.realizedPnlUsd)})` : undefined}
+                sub="deliberately not the headline"
+              />
+            </div>
           </div>
-          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1">
-            <Address value={entry.leader} lead={8} tail={8} />
-            {profile && (
-              <span className="term-label">
-                audit refreshed {relative(profile.provenance.computedAtMs)}
-              </span>
+
+          <div className="justify-self-center lg:justify-self-end">
+            {profile ? (
+              <EdgePentagon
+                dimensions={dimensionsFor(p?.dimensions)}
+                score={p?.edgeScore ?? null}
+                size={340}
+              />
+            ) : (
+              <Skeleton className="size-[340px] rounded-none" />
             )}
           </div>
         </div>
+      </section>
 
-        <div className="flex gap-6">
-          <div>
-            <div className="term-label">custody</div>
-            <div className="font-mono text-[15px] text-pos mt-0.5">self</div>
-          </div>
-          <div>
-            <div className="term-label">deposit fee</div>
-            <div className="font-mono text-[15px] mt-0.5">none</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-[1fr_352px] gap-6 items-start">
-        <div className="min-w-0 order-2 lg:order-1">
+      <div className="mt-2 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_356px]">
+        <div className="order-2 min-w-0 lg:order-1">
           {profile && <Audit data={profile} />}
 
           {missing && (
-            <Panel className="mt-6">
+            <Panel className="mt-10">
               <PanelHead label="no audit yet" />
-              <PanelBody className="space-y-2">
+              <PanelBody className="space-y-3">
                 <p className="text-[13px] text-muted-foreground">
                   This trader is on the roster but their profile has not been computed into the
                   site data.
                 </p>
-                <pre className="bg-muted border border-border p-3 text-[11px] font-mono overflow-x-auto">
+                <pre className="overflow-x-auto border border-border bg-muted p-3 font-mono text-[11px]">
                   bun run src/cli.ts profile --candidates {entry.leader}
                   {"\n"}bun run build:appdata
                 </pre>
@@ -117,24 +150,24 @@ export function TraderPage({ data, leader }: { data: AppData; leader: string }) 
           )}
 
           {!profile && !missing && (
-            <div className="mt-6 space-y-3">
-              <Skeleton className="h-40 w-full" />
-              <Skeleton className="h-64 w-full" />
+            <div className="mt-10 space-y-4">
+              <Skeleton className="h-44 w-full" />
+              <Skeleton className="h-72 w-full" />
             </div>
           )}
         </div>
 
-        <div className="order-1 lg:order-2 lg:sticky lg:top-20 space-y-3">
+        <div className="order-1 space-y-4 lg:order-2 lg:sticky lg:top-24">
           <FollowPanel vault={entry} />
 
           {entry.elsewhere && entry.elsewhere.length > 0 && (
             <Panel>
               <PanelHead label="addresses not mirrored" aside={`${entry.elsewhere.length}`} />
-              <PanelBody className="space-y-3">
+              <PanelBody className="space-y-4">
                 {entry.elsewhere.map((e) => (
                   <div key={e.address}>
-                    <Address value={e.address} />
-                    <p className="mt-1 text-[11px] leading-relaxed text-faint">{e.note}</p>
+                    <CopyAddress address={e.address} lead={8} tail={8} />
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-faint">{e.note}</p>
                   </div>
                 ))}
               </PanelBody>

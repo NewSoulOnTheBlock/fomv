@@ -3,7 +3,6 @@ import { type ReactNode } from "react";
 import { DEFAULT_FEE_TERMS } from "@engine/follow/fees.js";
 import { LISTING_TERMS } from "@engine/platform/listing.js";
 import { AccountChip } from "@/components/AccountChip";
-import { Tag } from "@/components/term";
 import { cn } from "@/lib/utils";
 import { bps, relative } from "@/lib/format";
 import { href, type Route } from "@/lib/router";
@@ -12,17 +11,16 @@ import type { AppData } from "@/lib/types";
 /**
  * The frame every page sits in.
  *
- * # The status strip
+ * # The readout strip
  *
- * The thin bar above the header is the one piece of pure theatre in the app,
- * and it earns its place by being true: every figure on it is read from the
- * data file rather than written into the markup. It states the four things a
- * visitor would otherwise have to hunt for — which network, how many traders,
- * what it costs, and who holds the funds — and it states them before the
- * product has finished making its argument.
+ * The hairline bar above the header is the one flourish in the product, and it
+ * earns its place by being true: every figure on it is read from the data file
+ * rather than typed into the markup. It answers, before the page has made any
+ * argument, the four questions a visitor would otherwise have to hunt for --
+ * which network, how many traders, what it costs, and who holds the funds.
  *
- * `CUSTODY SELF` is the most important string on the page and it is deliberate
- * that it appears above the fold on every route.
+ * `CUSTODY SELF` is the most consequential string on the site and it is
+ * deliberate that it appears above the fold on every route.
  */
 
 const NAV: { label: string; path: string; match: Route["name"][] }[] = [
@@ -40,33 +38,33 @@ export function Shell({
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col">
-      <StatusStrip data={data} />
+    <div className="grain vignette flex min-h-screen flex-col">
+      <ReadoutStrip data={data} />
       <Header route={route} />
-      <main className="flex-1 w-full max-w-[1180px] mx-auto px-4 sm:px-6 pb-20">{children}</main>
+      <main className="mx-auto w-full max-w-[1200px] flex-1 px-5 pb-24 sm:px-8">{children}</main>
       <Footer />
     </div>
   );
 }
 
-function StatusStrip({ data }: { data: AppData | null }) {
+function ReadoutStrip({ data }: { data: AppData | null }) {
   const cells: [string, ReactNode][] = [
     ["net", data?.platform.cluster ?? "—"],
     ["roster", data ? `${data.roster.length}/${LISTING_TERMS.maxRoster}` : "—"],
-    ["fee", `${bps(DEFAULT_FEE_TERMS.tradeFeeBps)} / trade`],
+    ["fee", `${bps(DEFAULT_FEE_TERMS.tradeFeeBps)} per trade`],
     ["custody", <span className="text-pos">self</span>],
   ];
 
   return (
-    <div className="border-b border-border bg-[#060709]">
-      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 h-7 flex items-center gap-4 overflow-x-auto">
+    <div className="border-b border-border bg-[#050507]">
+      <div className="mx-auto flex h-8 max-w-[1200px] items-center gap-5 overflow-x-auto px-5 sm:px-8">
         {cells.map(([k, v]) => (
-          <span key={k} className="flex items-center gap-1.5 shrink-0">
+          <span key={k} className="flex shrink-0 items-baseline gap-2">
             <span className="term-label">{k}</span>
             <span className="font-mono text-[11px] text-secondary-foreground">{v}</span>
           </span>
         ))}
-        <span className="ml-auto shrink-0 term-label hidden sm:block">
+        <span className="term-label ml-auto hidden shrink-0 sm:block">
           data {data ? relative(data.generatedAtMs) : "—"}
         </span>
       </div>
@@ -76,37 +74,36 @@ function StatusStrip({ data }: { data: AppData | null }) {
 
 function Header({ route }: { route: Route }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-sm">
-      {/* The grid sits behind the chrome only. Full-page it becomes noise the
-          moment real figures are laid over it. */}
-      <div className="absolute inset-0 term-grid opacity-[0.55] pointer-events-none" aria-hidden />
+    <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="term-grid pointer-events-none absolute inset-0 opacity-50" aria-hidden />
 
-      <div className="relative max-w-[1180px] mx-auto px-4 sm:px-6 h-14 flex items-center gap-3 sm:gap-8">
-        <a href={href("/")} className="flex items-center gap-2.5 shrink-0 group">
-          {/*
-            The shield alone, not the full lockup. The lockup carries its own
-            "FOMO VAULT" wordmark, which at header size renders as an illegible
-            smudge -- so the name is set in type instead, where it stays sharp
-            at any size. The full lockup is still shipped for share cards.
-          */}
+      <div className="relative mx-auto flex h-16 max-w-[1200px] items-center gap-3 px-5 sm:gap-10 sm:px-8">
+        <a href={href("/")} className="group flex min-w-0 shrink items-center gap-3">
           <img
             src="/mark-72.png"
             srcSet="/mark-72.png 1x, /mark-144.png 2x"
             alt=""
-            width={26}
-            height={26}
+            width={28}
+            height={28}
             decoding="async"
-            className="block size-[26px] shrink-0"
+            className="block size-7 shrink-0"
           />
-          <span className="font-mono text-[17px] font-bold tracking-[-0.03em] leading-none">
-            FOM<span className="text-primary">V</span>
-          </span>
-          <span className="term-label hidden md:block transition-colors group-hover:text-muted-foreground">
-            fear of missing vault
+          <span className="flex flex-col leading-none">
+            {/* Bodoni's thins vanish at small sizes on a dark ground, so the
+                wordmark is set heavy where body copy is set regular. */}
+            <span
+              className="display text-[25px] leading-none tracking-[0.02em]"
+              // `font-variation-settings` overrides `font-weight` outright, so the
+              // weight has to travel on the axis or it silently stays at 400.
+              style={{ fontVariationSettings: '"opsz" 96, "wght" 700' }}
+            >
+              FOM<span className="text-primary">V</span>
+            </span>
+            <span className="term-label mt-1 hidden md:block">fear of missing vault</span>
           </span>
         </a>
 
-        <nav className="flex items-center gap-1 min-w-0 shrink" aria-label="Main">
+        <nav className="flex shrink-0 items-center gap-1" aria-label="Main">
           {NAV.map((item) => {
             const active = item.match.includes(route.name);
             return (
@@ -115,13 +112,11 @@ function Header({ route }: { route: Route }) {
                 href={href(item.path)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "px-2 sm:px-2.5 py-1 font-mono text-[12px] tracking-wide transition-colors",
-                  "border-b-2 -mb-px truncate",
-                  active
-                    ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
+                  "whitespace-nowrap px-2 py-1 font-mono text-[12px] tracking-wide transition-colors sm:px-3",
+                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
+                {active && <span className="mr-1.5 text-primary">▸</span>}
                 {item.label}
               </a>
             );
@@ -138,23 +133,24 @@ function Header({ route }: { route: Route }) {
 
 function Footer() {
   return (
-    <footer className="border-t border-border mt-auto">
-      <div className="max-w-[1180px] mx-auto px-4 sm:px-6 py-8 grid gap-6 md:grid-cols-[1fr_auto] md:items-start">
-        <div className="max-w-2xl space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[13px] font-bold">FOMV</span>
-            <Tag>non-custodial</Tag>
-            <Tag>solana only</Tag>
-          </div>
+    <footer className="engraved mt-auto">
+      <div className="mx-auto grid max-w-[1200px] gap-8 px-5 py-12 sm:px-8 md:grid-cols-[1fr_auto] md:items-start">
+        <div className="max-w-2xl space-y-4">
+          <div className="display text-[20px]">FOMV</div>
           <p className="text-[12px] leading-relaxed text-faint">
             Copy-trading replicates another account's transactions at the operator's sole
-            direction. Nothing here is investment advice, and a published grade is a measurement
-            of the past, not a forecast. Delegation authorises FOMV to sign swaps on your wallet
-            under the guardrails on each trader's page; it does not permit transfers to any other
+            direction. Nothing here is investment advice, and a published grade is a measurement of
+            the past, not a forecast. Authorising FOMV lets it sign swaps on your wallet under the
+            guardrails printed on each trader's page; it does not permit transfers to any other
             address, and you can withdraw it at any time.
           </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-faint">
+            <span>non-custodial</span>
+            <span>solana only</span>
+            <span>no deposit</span>
+          </div>
         </div>
-        <nav className="flex md:flex-col gap-x-5 gap-y-1.5 text-[12px]" aria-label="Footer">
+        <nav className="flex gap-x-6 gap-y-2 text-[12px] md:flex-col" aria-label="Footer">
           <a href={href("/")} className="text-muted-foreground hover:text-foreground">
             Roster
           </a>

@@ -3,7 +3,7 @@ import { AlertTriangle, Check, Loader2, Minus, Send } from "lucide-react";
 
 import { LISTING_BAR, LISTING_TERMS } from "@engine/platform/listing.js";
 import { CalendlyEmbed } from "@/components/apply/CalendlyEmbed";
-import { Callout, Panel, PanelBody, PanelHead, SectionRule, Tag } from "@/components/term";
+import { Callout, FactLine, Lamp, Panel, PanelBody, PanelHead, SectionRule } from "@/components/term";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -246,7 +246,7 @@ export function ApplyPage() {
           <div ref={bookingRef} className="scroll-mt-24">
             {phase === "sent" && (
               <>
-                <SectionRule aside="step 2 of 2">Pick a time</SectionRule>
+                <SectionRule index="02" aside="step 2 of 2">Pick a time</SectionRule>
                 {CALENDLY_URL ? (
                   <CalendlyEmbed url={CALENDLY_URL} />
                 ) : (
@@ -281,23 +281,22 @@ export function ApplyPage() {
 
 function Masthead() {
   return (
-    <div className="pt-12 pb-8 border-b border-border">
-      <div className="term-label mb-4">for traders · {LISTING_TERMS.maxRoster} seats</div>
-      <h1 className="text-3xl sm:text-[38px] leading-[1.08] font-semibold tracking-[-0.03em] max-w-2xl">
+    <div className="rise step-1 border-b border-border pb-10 pt-16">
+      <div className="term-label mb-6">for traders · {LISTING_TERMS.maxRoster} seats</div>
+      <h1 className="display max-w-3xl text-[clamp(2.5rem,5.6vw,4rem)]">
         Get audited. Get listed.
         <br />
-        Get followed.
+        Get <span className="display-em">followed</span>.
       </h1>
-      <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground max-w-xl">
+      <p className="mt-7 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
         Tell us which wallet to look at and pick a time. Before the call we run the same
         five-dimension audit you can see on any roster page against your real on-chain history, so
         the conversation starts from your numbers rather than your pitch.
       </p>
-      <div className="mt-6 flex flex-wrap gap-2">
-        <Tag tone="accent">solana only, for now</Tag>
-        <Tag>you keep your keys</Tag>
-        <Tag>you keep trading your own account</Tag>
-      </div>
+      <FactLine
+        className="mt-7"
+        facts={["solana only, for now", "you keep your keys", "you keep trading your own account"]}
+      />
     </div>
   );
 }
@@ -315,7 +314,7 @@ function Received({
     <Panel>
       <PanelHead
         label={offline ? "not recorded" : "application received"}
-        aside={offline ? undefined : <Tag tone="live">logged</Tag>}
+        aside={offline ? undefined : <Lamp tone="pos">logged</Lamp>}
       />
       <PanelBody className="space-y-3">
         {offline ? (

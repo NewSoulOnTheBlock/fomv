@@ -78,12 +78,41 @@ export interface AbilityProfile {
   gaps: string[];
 }
 
+/**
+ * Where the historical prices behind entry and exit quality came from.
+ *
+ * Mirrors `ProfileProvenance.priceSource` in the engine. Declared here rather
+ * than imported because it crosses a network boundary: the JSON on disk is the
+ * contract, and a type that silently followed an engine refactor would let a
+ * stale profile render as `undefined` instead of failing loudly.
+ */
+export interface PriceSource {
+  /** Feed name, or "observed-fills" when no feed answered. */
+  feed: string;
+  /** Candle width, e.g. "minute15". Null when no candles were used. */
+  resolution: string | null;
+  tokensRequested: number;
+  tokensCovered: number;
+  candles: number;
+  /** True when the trader's own fills were the only prices available. */
+  degraded: boolean;
+}
+
 export interface ProfileProvenance {
   trades: number;
   windowFromMs: number | null;
   windowToMs: number | null;
   tokensPriced: number;
   priceObservations: number;
+  /**
+   * Which source the entry and exit dimensions were measured against.
+   *
+   * Optional because profiles written before the price feed existed do not
+   * carry it. The UI reports that absence as an absence rather than assuming
+   * either answer -- guessing "observed fills" would be right today and wrong
+   * the moment someone restores an old file from a run that did have a feed.
+   */
+  priceSource?: PriceSource;
   equityUsd: number | null;
   truncated: string | null;
   caveats: string[];

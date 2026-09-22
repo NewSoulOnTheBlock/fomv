@@ -9,6 +9,9 @@ import {
   SectionRule,
   Stat,
 } from "@/components/term";
+import { PriceSourceNote } from "@/components/trader/PriceSourceNote";
+import { DIMENSION_META } from "@/lib/dimensions";
+import { PENTAGON_ORDER } from "@/components/viz/EdgePentagon";
 import {
   bandColor,
   count,
@@ -44,35 +47,7 @@ import type { DimensionName, TraderProfile } from "@/lib/types";
  * does not render differently on two operating systems.
  */
 
-const DIMENSIONS: Record<DimensionName, { code: string; title: string; blurb: string }> = {
-  profitability: {
-    code: "PRF",
-    title: "Profitability",
-    blurb: "Profit factor and the typical trade's return",
-  },
-  risk: {
-    code: "RSK",
-    title: "Risk management",
-    blurb: "Drawdown, position size, and win-versus-loss size",
-  },
-  entry: {
-    code: "ENT",
-    title: "Entry skill",
-    blurb: "Where the token went after they bought",
-  },
-  exit: {
-    code: "EXT",
-    title: "Exit skill",
-    blurb: "How much of the available move they actually took",
-  },
-  consistency: {
-    code: "CNS",
-    title: "Consistency",
-    blurb: "Stability across time and across tokens",
-  },
-};
-
-const ORDER: DimensionName[] = ["profitability", "risk", "entry", "exit", "consistency"];
+const ORDER: DimensionName[] = PENTAGON_ORDER;
 
 export function Audit({ data }: { data: TraderProfile }) {
   const { profile: p, provenance: prov } = data;
@@ -80,9 +55,7 @@ export function Audit({ data }: { data: TraderProfile }) {
 
   return (
     <div>
-      <EdgeHeadline data={data} />
-
-      <SectionRule aside="0-100 each">Ability dimensions</SectionRule>
+      <SectionRule index="01" aside="0-100 each">Ability dimensions</SectionRule>
       <Panel>
         <div className="divide-y divide-border">
           {ORDER.map((name) => (
@@ -96,7 +69,7 @@ export function Audit({ data }: { data: TraderProfile }) {
         </div>
       </Panel>
 
-      <SectionRule aside="ten figures">The core metrics</SectionRule>
+      <SectionRule index="02" aside="ten figures">The core metrics</SectionRule>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-px bg-border border border-border">
         <Metric
           n="01"
@@ -172,17 +145,19 @@ export function Audit({ data }: { data: TraderProfile }) {
         />
       </div>
 
-      <SectionRule>Skill versus exposure</SectionRule>
+      <SectionRule index="03">Skill versus exposure</SectionRule>
       <SkillExposure data={data} />
 
-      <div className="grid lg:grid-cols-2 gap-3 mt-3">
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <EntryDetail data={data} />
         <ExitDetail data={data} />
       </div>
+      <PriceSourceNote source={prov.priceSource} className="mt-4" />
 
       {c.consistency.bucketPnlUsd.length > 0 && (
         <>
           <SectionRule
+            index="04"
             aside={`${c.consistency.buckets} ${c.consistency.buckets === 1 ? "period" : "periods"}`}
           >
             Consistency over time
@@ -222,7 +197,7 @@ export function Audit({ data }: { data: TraderProfile }) {
 
       {(p.flags.length > 0 || p.gaps.length > 0) && (
         <>
-          <SectionRule aside={`${p.flags.length + p.gaps.length} items`}>
+          <SectionRule index="05" aside={`${p.flags.length + p.gaps.length} items`}>
             What to read carefully
           </SectionRule>
           <Panel>
@@ -242,7 +217,7 @@ export function Audit({ data }: { data: TraderProfile }) {
         </>
       )}
 
-      <SectionRule aside={`computed ${relative(prov.computedAtMs)}`}>
+      <SectionRule index="06" aside={`computed ${relative(prov.computedAtMs)}`}>
         Where these numbers come from
       </SectionRule>
       <Panel>
@@ -282,64 +257,6 @@ export function Audit({ data }: { data: TraderProfile }) {
   );
 }
 
-function EdgeHeadline({ data }: { data: TraderProfile }) {
-  const { profile: p, provenance: prov } = data;
-  const c = p.core;
-
-  return (
-    <Panel className="mt-6">
-      <PanelHead label="trader edge score" aside={`${count(prov.trades)} swaps decoded`} />
-      <div className="grid md:grid-cols-[260px_1fr] divide-y md:divide-y-0 md:divide-x divide-border">
-        <div className="p-5 flex flex-col gap-3">
-          <div className="flex items-baseline gap-2">
-            <span
-              className="font-mono text-[64px] leading-[0.85] font-bold tracking-[-0.05em]"
-              style={{ color: bandColor(p.edgeScore) }}
-            >
-              {score(p.edgeScore)}
-            </span>
-            <span className="term-label">/100</span>
-          </div>
-          <ScoreBar value={p.edgeScore} />
-          <div
-            className="term-label !text-[11px]"
-            style={{ color: bandColor(p.edgeScore) }}
-          >
-            {p.grade === "insufficient-data" ? "not enough data to grade" : `grade ${p.grade}`}
-          </div>
-        </div>
-
-        <div className="min-w-0">
-          <div className="grid grid-cols-2 sm:grid-cols-3 divide-x divide-y divide-border [&>*]:p-3 [&>*]:-mt-px [&>*]:-ml-px">
-            <Stat label="win rate" value={pct(c.winRate, 1)} size="sm" />
-            <Stat label="profit factor" value={ratio(c.profitFactor)} size="sm" />
-            <Stat label="median roi" value={pct(c.medianRoi, 0)} size="sm" />
-            <Stat label="max drawdown" value={pct(c.maxDrawdown)} size="sm" />
-            <Stat label="entry efficiency" value={pct(asFraction(p.dimensions.entry), 0)} size="sm" />
-            <Stat label="exit efficiency" value={pct(asFraction(p.dimensions.exit), 0)} size="sm" />
-          </div>
-          <div className="border-t border-border px-4 py-3 text-[12px] leading-relaxed text-faint">
-            Realised P&L over this window was{" "}
-            <span
-              className="font-mono"
-              style={{ color: signOf(c.realizedPnlUsd) ? `var(--${signOf(c.realizedPnlUsd)})` : undefined }}
-            >
-              {signedUsd(c.realizedPnlUsd)}
-            </span>{" "}
-            — deliberately not the headline. A P&L leaderboard rewards whoever took the most risk
-            and happened to survive.
-          </div>
-        </div>
-      </div>
-    </Panel>
-  );
-}
-
-/** Dimension scores are 0-100; the headline shows them as efficiencies. */
-function asFraction(v: number | null): number | null {
-  return v === null ? null : v / 100;
-}
-
 function Dimension({
   name,
   value,
@@ -349,7 +266,7 @@ function Dimension({
   value: number | null;
   profile: TraderProfile;
 }) {
-  const meta = DIMENSIONS[name];
+  const meta = DIMENSION_META[name];
 
   return (
     <div className="grid sm:grid-cols-[52px_1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3">
@@ -357,7 +274,7 @@ function Dimension({
 
       <div className="min-w-0">
         <div className="flex items-baseline justify-between gap-3 mb-1.5">
-          <span className="text-[13px] font-medium">{meta.title}</span>
+          <span className="text-[13px] font-medium">{meta.label}</span>
           <span
             className="font-mono text-[13px] sm:hidden"
             style={{ color: value === null ? "var(--faint)" : bandColor(value) }}

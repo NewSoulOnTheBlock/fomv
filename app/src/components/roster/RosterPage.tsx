@@ -3,9 +3,13 @@ import { ArrowRight } from "lucide-react";
 
 import { DEFAULT_FEE_TERMS } from "@engine/follow/fees.js";
 import { LISTING_TERMS } from "@engine/platform/listing.js";
-import { Address, Panel, PanelBody, PanelHead, ScoreBar, SectionRule, Stat, Tag } from "@/components/term";
+import { EdgeGlyph } from "@/components/viz/EdgePentagon";
+import { MirrorDiagram } from "@/components/viz/MirrorDiagram";
+import { Sparkline } from "@/components/viz/Sparkline";
+import { FactLine, Panel, PanelBody, SectionRule } from "@/components/term";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { dimensionsFor } from "@/lib/dimensions";
 import { bandColor, bps, count, pct, ratio, relative, score, signOf, signedUsd } from "@/lib/format";
 import { href } from "@/lib/router";
 import type { AppData, RosterEntry, TraderProfile } from "@/lib/types";
@@ -13,18 +17,16 @@ import type { AppData, RosterEntry, TraderProfile } from "@/lib/types";
 /**
  * The roster.
  *
- * # Why this page argues before it lists
+ * # The order of the argument
  *
- * There is one trader on it. A grid of cards would make that look like a
- * shortage; a short argument followed by one dense record makes it look like
- * an editorial decision, which is what it is. The claim the page has to land
- * before anything else is that FOMV grades traders rather than ranking them by
- * P&L — a visitor who reads the number as a leaderboard position has
- * misunderstood the product in the first five seconds.
+ * A visitor arrives believing one of two wrong things: that this is a
+ * leaderboard, or that it is custodial. The page answers both before it lists
+ * anyone -- the headline says *graded*, and the diagram under it shows the
+ * trade arriving in a wallet with no line leaving it. Only then does it show
+ * traders, and each record leads with the Edge shape rather than with P&L.
  *
- * Each record therefore leads with the Edge Score and shows realised P&L as
- * the last figure on the row, in smaller type than the grade. That ordering is
- * the argument.
+ * That ordering is the whole design. A roster that opened with a number would
+ * be read as a ranking no matter what the copy said.
  */
 export function RosterPage({ data }: { data: AppData }) {
   const [profiles, setProfiles] = useState<Record<string, TraderProfile>>({});
@@ -57,12 +59,15 @@ export function RosterPage({ data }: { data: AppData }) {
     <div>
       <Masthead count={data.roster.length} />
 
-      <SectionRule aside={`${data.roster.length} listed`}>The roster</SectionRule>
+      <SectionRule index="01" aside={`${data.roster.length} of ${LISTING_TERMS.maxRoster} seats`}>
+        The roster
+      </SectionRule>
 
-      <div className="space-y-3">
-        {data.roster.map((entry) => (
+      <div className="space-y-4">
+        {data.roster.map((entry, i) => (
           <TraderRecord
             key={entry.leader}
+            index={i + 1}
             entry={entry}
             profile={profiles[entry.leader]}
             loading={!loaded}
@@ -78,47 +83,72 @@ export function RosterPage({ data }: { data: AppData }) {
       </div>
 
       <HowItWorks />
-      <ListingPitch seats={LISTING_TERMS.maxRoster} listed={data.roster.length} />
+      <ListingPitch listed={data.roster.length} />
     </div>
   );
 }
 
 function Masthead({ count: listed }: { count: number }) {
   return (
-    <div className="pt-12 pb-10 md:pt-16 md:pb-14 border-b border-border">
-      <div className="max-w-3xl">
-        <div className="term-label mb-4">
-          copy-trading · solana · {listed} trader{listed === 1 ? "" : "s"}
-        </div>
-        <h1 className="text-3xl sm:text-[40px] leading-[1.08] font-semibold tracking-[-0.03em]">
-          Follow a graded trader
-          <br />
-          from your own wallet.
-        </h1>
-        <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground max-w-xl">
-          A short roster of traders, audited on five dimensions of skill rather than ranked by
-          profit. Authorise FOMV to mirror one of them and their swaps are copied into{" "}
-          <span className="text-foreground">your</span> wallet, sized by portfolio weight — so your
-          position scales to your balance, not theirs.
-        </p>
+    <section className="border-b border-border pb-14 pt-16 md:pt-24">
+      <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+        <div className="rise step-1">
+          <div className="term-label mb-6">
+            copy-trading · solana · {listed} graded trader{listed === 1 ? "" : "s"}
+          </div>
 
-        <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3">
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono text-[15px] text-foreground">
-              {bps(DEFAULT_FEE_TERMS.tradeFeeBps)}
-            </span>
-            <span className="term-label">per mirrored trade</span>
+          <h1 className="display text-[clamp(2.75rem,6.4vw,4.5rem)]">
+            Follow a trader
+            <br />
+            who has been
+            <br />
+            <span className="display-em">measured</span>.
+          </h1>
+
+          <p className="mt-7 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+            A short roster, audited on five dimensions of skill rather than ranked by profit.
+            Authorise one of them and their swaps are mirrored into{" "}
+            <span className="text-foreground">your</span> wallet at their portfolio weight — so
+            your position scales to your balance, not theirs.
+          </p>
+
+          <div className="mt-9 flex flex-wrap items-end gap-x-10 gap-y-5">
+            <Headline value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} label="per mirrored trade" />
+            <Headline value="$0" label="to start or stop" />
+            <Headline value="self" label="custody, always" tone="var(--pos)" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono text-[15px] text-foreground">$0</span>
-            <span className="term-label">to deposit or withdraw</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono text-[15px] text-pos">self</span>
-            <span className="term-label">custody, always</span>
-          </div>
+        </div>
+
+        {/*
+          Hidden below md. The drawing is 760 units wide and its labels are set
+          at 9px; at phone width it renders those at under 5px, which is not a
+          smaller diagram but an unreadable one. The four steps below say the
+          same thing in words, which is the right medium at that size.
+        */}
+        <div className="rise step-3 relative hidden md:block">
+          <div
+            // Vertical bleed only. `-inset-10` widened the document by 20px on a
+            // phone, because nothing clips a decorative layer that escapes its box.
+            className="pointer-events-none absolute -inset-y-12 inset-x-0 -z-10 opacity-60"
+            style={{
+              background: "radial-gradient(60% 60% at 50% 50%, var(--amber-glow), transparent 70%)",
+            }}
+            aria-hidden
+          />
+          <MirrorDiagram />
         </div>
       </div>
+    </section>
+  );
+}
+
+function Headline({ value, label, tone }: { value: string; label: string; tone?: string }) {
+  return (
+    <div>
+      <div className="font-mono text-[22px] leading-none" style={tone ? { color: tone } : undefined}>
+        {value}
+      </div>
+      <div className="term-label mt-2">{label}</div>
     </div>
   );
 }
@@ -126,109 +156,112 @@ function Masthead({ count: listed }: { count: number }) {
 /**
  * One trader, as a record rather than a card.
  *
- * Full width, hairline-divided, with the grade dial on the left and the figures
- * running across. It is a row in a terminal even though there is currently one
- * of them, so the page does not have to be redesigned at four.
+ * The Edge shape sits on the left at glyph size and is the first thing read,
+ * which is the point: two traders with the same score and different shapes are
+ * different products, and a number cannot say so. Realised P&L is the last
+ * figure on the row and set no larger than the rest.
  */
 function TraderRecord({
+  index,
   entry,
   profile,
   loading,
 }: {
+  index: number;
   entry: RosterEntry;
   profile: TraderProfile | undefined;
   loading: boolean;
 }) {
   const p = profile?.profile;
-  const edge = p?.edgeScore ?? null;
   const c = p?.core;
+  const edge = p?.edgeScore ?? null;
+  const dims = dimensionsFor(p?.dimensions);
+  const buckets = c?.consistency.bucketPnlUsd ?? [];
 
   return (
-    <Panel className="transition-colors hover:border-[#2a2f39]">
-      <PanelHead
-        label={
-          <span className="flex items-center gap-2.5">
-            <span className="text-[13px] font-semibold tracking-normal normal-case text-foreground font-sans">
-              {entry.handle}
+    <Panel className="group rise step-2 transition-colors hover:border-[#2c2c36]">
+      <a href={href(`/t/${entry.leader}`)} className="block focus-visible:outline-none">
+        <div className="grid gap-5 p-5 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center">
+          {/* Identity and shape. */}
+          <div className="flex items-center gap-5">
+            <span className="term-label hidden w-6 shrink-0 md:block">
+              {String(index).padStart(2, "0")}
             </span>
-            <Tag>{entry.chain}</Tag>
-            <Tag tone={entry.status === "live" ? "live" : "neutral"}>{entry.status}</Tag>
-          </span>
-        }
-        aside={profile ? `audited ${relative(profile.provenance.computedAtMs)}` : undefined}
-      />
+            {loading ? (
+              <Skeleton className="size-[52px]" />
+            ) : (
+              <EdgeGlyph dimensions={dims} score={edge} size={52} />
+            )}
+            <div className="min-w-0">
+              <div className="display truncate text-[26px]">{entry.handle}</div>
+              <FactLine
+                className="mt-1.5"
+                facts={[
+                  entry.chain,
+                  `listing ${entry.status}`,
+                  profile && `audited ${relative(profile.provenance.computedAtMs)}`,
+                ]}
+              />
+            </div>
+          </div>
 
-      <div className="grid md:grid-cols-[220px_1fr] divide-y md:divide-y-0 md:divide-x divide-border">
-        {/* The grade. */}
-        <div className="p-4 flex md:flex-col items-center md:items-start gap-4 md:gap-3">
-          {loading ? (
-            <Skeleton className="h-12 w-24" />
-          ) : (
-            <>
-              <div className="flex items-baseline gap-2">
-                <span
-                  className="font-mono text-[44px] leading-none font-bold tracking-[-0.04em]"
-                  style={{ color: bandColor(edge) }}
-                >
-                  {score(edge)}
-                </span>
-                <span className="term-label">/100</span>
-              </div>
-              <div className="flex flex-col gap-2 md:w-full">
-                <span className="term-label">
-                  edge score ·{" "}
-                  <span style={{ color: bandColor(edge) }}>
-                    {p?.grade === "insufficient-data" ? "no grade" : `grade ${p?.grade ?? "—"}`}
-                  </span>
-                </span>
-                <ScoreBar value={edge} className="hidden md:flex w-full" segments={20} />
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* The figures. */}
-        <div className="min-w-0">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-x divide-y divide-border [&>*]:p-3 [&>*]:-mt-px [&>*]:-ml-px">
-            <Stat label="profit factor" value={ratio(c?.profitFactor)} size="sm" />
-            <Stat label="win rate" value={pct(c?.winRate ?? null)} size="sm" />
-            <Stat
+          {/* The reading. */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4 md:justify-self-end">
+            <Cell
+              label="edge"
+              value={score(edge)}
+              tone={bandColor(edge)}
+              sub={p?.grade === "insufficient-data" ? "no grade" : `grade ${p?.grade ?? "—"}`}
+            />
+            <Cell label="profit factor" value={ratio(c?.profitFactor)} sub={`win ${pct(c?.winRate ?? null)}`} />
+            <Cell
               label="max drawdown"
               value={pct(c?.maxDrawdown ?? null)}
-              size="sm"
-              tone={c?.maxDrawdown != null && c.maxDrawdown > 0.3 ? "var(--warn)" : undefined}
+              sub={`${count(c?.closedEpisodes)} round trips`}
             />
-            <Stat label="round trips" value={count(c?.closedEpisodes)} size="sm" />
-            <Stat
-              label="realised p&l"
+            <Cell
+              label="realised"
               value={signedUsd(c?.realizedPnlUsd ?? null, { compact: true })}
-              size="sm"
-              tone={
-                signOf(c?.realizedPnlUsd) ? `var(--${signOf(c?.realizedPnlUsd)})` : undefined
-              }
+              tone={signOf(c?.realizedPnlUsd) ? `var(--${signOf(c?.realizedPnlUsd)})` : undefined}
+              sub={buckets.length >= 2 ? <Sparkline values={buckets} width={78} height={20} /> : undefined}
             />
           </div>
 
-          <div className="p-3 border-t border-border flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Address value={entry.leader} />
-            <span className="text-faint text-[11px]">·</span>
-            <span className="term-label">fee {bps(DEFAULT_FEE_TERMS.tradeFeeBps)} / trade</span>
-            <Button asChild size="sm" variant="outline" className="ml-auto font-mono text-[12px]">
-              <a href={href(`/t/${entry.leader}`)}>
-                Open audit
-                <ArrowRight />
-              </a>
-            </Button>
+          <div className="hidden shrink-0 items-center gap-2 font-mono text-[12px] text-muted-foreground transition-colors group-hover:text-primary md:flex">
+            open
+            <ArrowRight className="size-3.5" />
           </div>
         </div>
-      </div>
+      </a>
 
       {entry.note && (
-        <div className="border-t border-border px-4 py-3 text-[12px] leading-relaxed text-muted-foreground">
+        <p className="border-t border-border px-5 py-3.5 text-[12px] leading-relaxed text-faint">
           {entry.note}
-        </div>
+        </p>
       )}
     </Panel>
+  );
+}
+
+function Cell({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: React.ReactNode;
+  tone?: string;
+}) {
+  return (
+    <div className="min-w-[92px]">
+      <div className="term-label">{label}</div>
+      <div className="mt-1.5 font-mono text-[19px] leading-none" style={tone ? { color: tone } : undefined}>
+        {value}
+      </div>
+      {sub !== undefined && <div className="mt-1.5 text-[10px] text-faint">{sub}</div>}
+    </div>
   );
 }
 
@@ -252,19 +285,19 @@ function HowItWorks() {
     [
       "04",
       "You pay per trade",
-      `${bps(DEFAULT_FEE_TERMS.tradeFeeBps)} of the notional actually filled, and nothing under $${DEFAULT_FEE_TERMS.minChargeableUsd}. No deposit fee, no exit fee, nothing while you sit still.`,
+      `${bps(DEFAULT_FEE_TERMS.tradeFeeBps)} of the notional actually filled, half of it to the trader, nothing under $${DEFAULT_FEE_TERMS.minChargeableUsd}. Nothing while you sit still.`,
     ],
   ];
 
   return (
     <>
-      <SectionRule>How following works</SectionRule>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
+      <SectionRule index="02">How following works</SectionRule>
+      <div className="grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
         {steps.map(([n, title, body]) => (
-          <div key={n} className="bg-card p-4">
+          <div key={n} className="bg-card p-5">
             <div className="font-mono text-[11px] text-primary">{n}</div>
-            <h3 className="mt-2 text-[13px] font-semibold">{title}</h3>
-            <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{body}</p>
+            <h3 className="display mt-3 text-[20px]">{title}</h3>
+            <p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">{body}</p>
           </div>
         ))}
       </div>
@@ -272,35 +305,31 @@ function HowItWorks() {
   );
 }
 
-/**
- * The trader-side funnel entry.
- *
- * Placed at the bottom of the roster rather than in the hero on purpose. The
- * pitch to a trader is "look at how these people are presented, you could be
- * one of them" — which only works after they have seen a record. Leading with
- * it would ask for an application before showing what a listing looks like.
- */
-function ListingPitch({ seats, listed }: { seats: number; listed: number }) {
+function ListingPitch({ listed }: { listed: number }) {
+  const open = Math.max(0, LISTING_TERMS.maxRoster - listed);
   return (
     <>
-      <SectionRule aside={`${Math.max(0, seats - listed)} seats open`}>Trade your own book?</SectionRule>
+      <SectionRule index="03" aside={`${open} seats open`}>
+        Trade your own book?
+      </SectionRule>
       <Panel>
-        <div className="grid md:grid-cols-[1fr_auto] gap-6 p-5 md:items-center">
+        <div className="grid items-center gap-8 p-7 md:grid-cols-[1fr_auto]">
           <div className="max-w-2xl">
-            <h3 className="text-[17px] font-semibold tracking-tight">
-              Get audited, get listed, get followed.
+            <h3 className="display text-[30px]">
+              Get audited. Get listed. Get <span className="display-em">followed</span>.
             </h3>
-            <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+            <p className="mt-3 text-[13.5px] leading-relaxed text-muted-foreground">
               We run the same five-dimension audit on your wallet that you see above, publish it
               whatever it says, and configure the mirror runner to your book. You keep trading your
               own account exactly as you do now — followers mirror it from their own wallets, and
               nothing about your keys or your positions changes.
             </p>
-            <p className="mt-2 text-[12px] text-faint">
-              The roster is capped at {seats}. Applications go to a call, not to a queue.
+            <p className="mt-3 text-[12px] text-faint">
+              The roster is capped at {LISTING_TERMS.maxRoster}. Applications go to a call, not to a
+              queue.
             </p>
           </div>
-          <Button asChild size="lg" className="font-mono shrink-0">
+          <Button asChild size="lg" className="shrink-0 font-mono">
             <a href={href("/apply")}>
               Apply to be listed
               <ArrowRight />

@@ -64,17 +64,20 @@ export const LAUNCH_ROSTER: RosterCandidate[] = [
       "one good afternoon.",
   },
   {
-    handle: "MFCheetoTiger",
+    handle: "crewofrebels",
     leader: "9Y3RsSURHJL9DGvAbRhbBHPUs7YsnXmiCkpMkCn5RJLW",
     chain: "solana",
     note:
-      "Scored 2026-09-22 and NOT yet listable. This address has 22 transactions in "
+      "Listed on fomo as https://fomo.family/profile/crewofrebels. Renamed from "
+      + "\"MFCheetoTiger\" on 2026-09-22: the handle was wrong, the address was not, "
+      + "and the trader confirmed the two go together. Nothing was rescored, because a "
+      + "handle is a label and no figure below depends on it. "
+      + "Scored 2026-09-22 and NOT yet listable. This address has 22 transactions in "
       + "total, all from 2026-09-22, and holds 0 SOL. 18 decoded as swaps across a "
       + "3.6-hour window: 8 complete round trips, 0% win rate, -$161 realised. The "
       + "scorer withholds a grade below 20 closed trips, and correctly does so here. "
       + "Decoding is not the problem (18 of 22 transactions parsed) - there is simply "
-      + "almost no history. Likely a fresh or burner wallet; confirm the intended "
-      + "address before listing.",
+      + "almost no history, so this is a thin window rather than a bad trader.",
   },
 ];
 

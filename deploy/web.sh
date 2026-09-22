@@ -67,7 +67,11 @@ fi
 
 # --redirect: nothing should reach this over plain http. Every authenticated
 # route carries a bearer token.
-certbot --nginx "${DOMAINS[@]}" --redirect --agree-tos \
+# --expand: a re-run that adds a name (www, typically) must replace the
+# existing certificate rather than stop and ask. Without it certbot exits
+# having already rewritten the vhost to plain http, which takes the site off
+# https until someone notices.
+certbot --nginx "${DOMAINS[@]}" --expand --redirect --agree-tos \
         --register-unsafely-without-email --non-interactive
 systemctl reload nginx
 

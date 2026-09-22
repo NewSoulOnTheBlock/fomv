@@ -91,7 +91,7 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
         <PanelBody className="space-y-3">
           <Skeleton className="h-4 w-40" />
           <Skeleton className="h-4 w-full" />
-          <p className="text-[12px] text-muted-foreground">
+          <p className="text-[15px] text-muted-foreground">
             Creating your Solana wallet. Privy does this once, on first sign-in.
           </p>
         </PanelBody>
@@ -124,7 +124,7 @@ export function FollowPanel({ vault }: { vault: RosterEntry }) {
 function SignedOut({ configured }: { configured: boolean }) {
   return (
     <PanelBody className="space-y-4">
-      <p className="text-[13px] leading-relaxed text-muted-foreground">
+      <p className="text-[15px] leading-relaxed text-muted-foreground">
         Sign in and a Solana wallet is created for you. You keep it. FOMV never holds your funds
         and cannot move them out.
       </p>
@@ -133,7 +133,7 @@ function SignedOut({ configured }: { configured: boolean }) {
         label={configured ? "sign in to follow" : "sign-in unavailable"}
       />
       {!configured && (
-        <p className="text-[11px] text-faint">
+        <p className="text-[13px] text-faint">
           Set <code className="font-mono">VITE_PRIVY_APP_ID</code> in{" "}
           <code className="font-mono">app/.env.local</code> to enable sign-in. Everything else on
           this page works without it.
@@ -160,7 +160,7 @@ function NotFollowing({
   return (
     <>
       <div className="px-4 pt-4">
-        <p className="text-[13px] leading-relaxed text-muted-foreground">
+        <p className="text-[15px] leading-relaxed text-muted-foreground">
           Authorise FOMV to mirror this trader's swaps into your own wallet.
         </p>
       </div>
@@ -208,7 +208,7 @@ function NotFollowing({
           <CopyAddress address={address} lead={6} tail={6} />
         </div>
 
-        <p className="text-[11px] leading-relaxed text-faint">
+        <p className="text-[13px] leading-relaxed text-faint">
           Fees are charged on trade notional rather than on profit, because a wallet you also trade
           yourself has no cost basis FOMV can honestly measure. In a losing month that is worse for
           you than a performance fee would be. Half of every fee goes to {vault.handle} — they
@@ -251,7 +251,7 @@ function Following({
         <Button variant="outline" className="w-full font-mono" onClick={onRevoke} disabled={busy}>
           {busy ? "revoking…" : "Stop following"}
         </Button>
-        <p className="text-[11px] leading-relaxed text-faint">
+        <p className="text-[13px] leading-relaxed text-faint">
           Revoking withdraws signing permission immediately and leaves your balances untouched —
           nothing is sold and nothing moves.
         </p>
@@ -269,7 +269,7 @@ function Permission({ allowed = false, children }: { allowed?: boolean; children
       ) : (
         <X className="size-3.5 mt-0.5 shrink-0 text-neg" aria-hidden />
       )}
-      <span className="flex-1 text-[12px] leading-snug text-secondary-foreground">{children}</span>
+      <span className="flex-1 text-[14px] leading-snug text-secondary-foreground">{children}</span>
       <span
         className="term-label shrink-0 mt-0.5"
         style={{ color: allowed ? "var(--pos)" : "var(--neg)" }}

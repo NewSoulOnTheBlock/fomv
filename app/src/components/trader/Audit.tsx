@@ -10,6 +10,7 @@ import {
   Stat,
 } from "@/components/term";
 import { PriceSourceNote } from "@/components/trader/PriceSourceNote";
+import { WithheldGrade } from "@/components/trader/WithheldGrade";
 import { DIMENSION_META } from "@/lib/dimensions";
 import { PENTAGON_ORDER } from "@/components/viz/EdgePentagon";
 import {
@@ -26,6 +27,7 @@ import {
   span,
   usd,
 } from "@/lib/format";
+import { DEFAULT_ABILITY } from "@engine/scoring/ability.js";
 import type { DimensionName, TraderProfile } from "@/lib/types";
 
 /**
@@ -49,25 +51,51 @@ import type { DimensionName, TraderProfile } from "@/lib/types";
 
 const ORDER: DimensionName[] = PENTAGON_ORDER;
 
+/**
+ * Closed round trips the scorer needs before it will grade at all.
+ *
+ * Mirrors `DEFAULT_ABILITY.minClosedEpisodes`. Read from the engine rather
+ * than typed here, so the number the page promises and the number the scorer
+ * enforces cannot drift apart.
+ */
+const MIN_CLOSED_EPISODES = DEFAULT_ABILITY.minClosedEpisodes;
+
 export function Audit({ data }: { data: TraderProfile }) {
   const { profile: p, provenance: prov } = data;
   const c = p.core;
+  // The scorer withholds every dimension together below the floor, so one
+  // null is the same signal as five.
+  const withheld = p.grade === "insufficient-data";
+  // The refusal is the headline of its own block above; repeating it here
+  // would be the third place the same sentence appears on one page.
+  const shownFlags = p.flags.filter((f) => !(withheld && /closed positions/i.test(f)));
 
   return (
     <div>
-      <SectionRule index="01" aside="0-100 each">Ability dimensions</SectionRule>
-      <Panel>
-        <div className="divide-y divide-border">
-          {ORDER.map((name) => (
-            <Dimension key={name} name={name} value={p.dimensions[name]} profile={data} />
-          ))}
-        </div>
-        <div className="border-t border-border px-4 py-3 text-[12px] leading-relaxed text-faint">
-          A hatched bar is a dimension that could not be measured from the available data. The Edge
-          Score is re-weighted over the dimensions that were, so a gap lowers confidence rather
-          than silently scoring zero.
-        </div>
-      </Panel>
+      <SectionRule index="01" aside={withheld ? "withheld" : "0-100 each"}>
+        Ability dimensions
+      </SectionRule>
+      {withheld ? (
+        // One statement of the refusal, not five repetitions of a non-answer.
+        <WithheldGrade
+          core={c}
+          required={MIN_CLOSED_EPISODES}
+          reason={p.flags.find((f) => /closed positions/i.test(f))}
+        />
+      ) : (
+        <Panel>
+          <div className="divide-y divide-border">
+            {ORDER.map((name) => (
+              <Dimension key={name} name={name} value={p.dimensions[name]} profile={data} />
+            ))}
+          </div>
+          <div className="border-t border-border px-5 py-4 text-[14px] leading-relaxed text-faint">
+            A hatched bar is a dimension that could not be measured from the available data. The
+            Edge Score is re-weighted over the dimensions that were, so a gap lowers confidence
+            rather than silently scoring zero.
+          </div>
+        </Panel>
+      )}
 
       <SectionRule index="02" aside="ten figures">The core metrics</SectionRule>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-px bg-border border border-border">
@@ -195,9 +223,9 @@ export function Audit({ data }: { data: TraderProfile }) {
         </>
       )}
 
-      {(p.flags.length > 0 || p.gaps.length > 0) && (
+      {(shownFlags.length > 0 || p.gaps.length > 0) && (
         <>
-          <SectionRule index="05" aside={`${p.flags.length + p.gaps.length} items`}>
+          <SectionRule index="05" aside={`${shownFlags.length + p.gaps.length} items`}>
             What to read carefully
           </SectionRule>
           <Panel>
@@ -248,7 +276,7 @@ export function Audit({ data }: { data: TraderProfile }) {
             ))}
           </div>
         )}
-        <div className="border-t border-border px-4 py-3 text-[12px] text-faint">
+        <div className="border-t border-border px-5 py-4 text-[14px] text-faint">
           Book value {usd(prov.equityUsd, { compact: true })} at the time of the audit. Every figure
           above is derived from on-chain history, not self-reported.
         </div>
@@ -269,27 +297,27 @@ function Dimension({
   const meta = DIMENSION_META[name];
 
   return (
-    <div className="grid sm:grid-cols-[52px_1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3">
-      <span className="font-mono text-[11px] tracking-[0.1em] text-faint">{meta.code}</span>
+    <div className="grid items-center gap-x-6 gap-y-3 px-5 py-5 sm:grid-cols-[56px_1fr_auto]">
+      <span className="font-mono text-[13px] tracking-[0.12em] text-faint">{meta.code}</span>
 
       <div className="min-w-0">
         <div className="flex items-baseline justify-between gap-3 mb-1.5">
-          <span className="text-[13px] font-medium">{meta.label}</span>
+          <span className="text-[19px] font-medium">{meta.label}</span>
           <span
-            className="font-mono text-[13px] sm:hidden"
+            className="font-mono text-[22px] sm:hidden"
             style={{ color: value === null ? "var(--faint)" : bandColor(value) }}
           >
             {score(value)}
           </span>
         </div>
         <ScoreBar value={value} />
-        <div className="mt-1.5 text-[11px] leading-snug text-faint">
+        <div className="mt-2.5 text-[13px] leading-snug text-faint">
           {value === null ? unmeasuredReason(name, profile) : meta.blurb}
         </div>
       </div>
 
       <span
-        className="hidden sm:block font-mono text-lg tabular-nums text-right w-12"
+        className="hidden w-16 text-right font-mono text-[30px] leading-none tabular-nums sm:block"
         style={{ color: value === null ? "var(--faint)" : bandColor(value) }}
       >
         {score(value)}
@@ -324,7 +352,7 @@ function SkillExposure({ data }: { data: TraderProfile }) {
 
   return (
     <Panel>
-      <div className="px-4 py-3 border-b border-border text-[12px] leading-relaxed text-muted-foreground">
+      <div className="border-b border-border px-5 py-4 text-[15px] leading-relaxed text-muted-foreground">
         The same dollars earned on 4% position sizes and on 40% position sizes are not the same
         result. For someone mirroring this book the difference is the whole product: exposure
         decides what a drawdown feels like, whatever the return.
@@ -396,7 +424,7 @@ function EntryDetail({ data }: { data: TraderProfile }) {
           />
         ))}
         <LeaderRow label="Median time to peak" value={duration(e.medianTimeToPeakSec)} />
-        <p className="mt-3 text-[11px] leading-snug text-faint">
+        <p className="mt-4 text-[13px] leading-snug text-faint">
           {e.sampleSize} of {e.population} entries had prices observable afterwards.
         </p>
       </PanelBody>
@@ -415,7 +443,7 @@ function ExitDetail({ data }: { data: TraderProfile }) {
         <LeaderRow label="The same figure, mean" value={pct(x.captureRatioMean, 0)} />
         <LeaderRow label="Move left on the table after exit" value={pct(x.avgReturnAfterExit, 1)} />
         <LeaderRow label="Exits followed by a further rise" value={pct(x.prematureExitRate, 0)} />
-        <p className="mt-3 text-[11px] leading-snug text-faint">
+        <p className="mt-4 text-[13px] leading-snug text-faint">
           {x.sampleSize} of {x.population} exits had prices observable afterwards. Each episode's
           capture is clamped before aggregation, so one catastrophic exit cannot define the
           dimension.
@@ -439,7 +467,7 @@ function Metric({
   tone?: string;
 }) {
   return (
-    <div className="bg-card p-4">
+    <div className="bg-card p-5">
       {/* Reserved for two lines, so a label that wraps does not push its own
           figure out of line with the rest of the row. */}
       <div className="flex min-h-[26px] items-start justify-between gap-2">
@@ -452,7 +480,7 @@ function Metric({
       >
         {v === EMPTY ? <span className="text-faint">{EMPTY}</span> : v}
       </div>
-      {note && <div className="mt-2 text-[11px] leading-snug text-faint">{note}</div>}
+      {note && <div className="mt-3 text-[12.5px] leading-snug text-faint">{note}</div>}
     </div>
   );
 }

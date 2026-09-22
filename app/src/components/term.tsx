@@ -52,20 +52,20 @@ export function PanelHead({
   return (
     <div
       className={cn(
-        "flex h-9 items-center justify-between gap-3 border-b border-border px-3",
+        "flex h-11 items-center justify-between gap-3 border-b border-border px-4",
         className,
       )}
     >
       <span className="term-label truncate">{label}</span>
       {aside !== undefined && (
-        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{aside}</span>
+        <span className="shrink-0 font-mono text-[12px] text-muted-foreground">{aside}</span>
       )}
     </div>
   );
 }
 
 export function PanelBody({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("p-4", className)}>{children}</div>;
+  return <div className={cn("p-5", className)}>{children}</div>;
 }
 
 /**
@@ -87,10 +87,10 @@ export function SectionRule({
   className?: string;
 }) {
   return (
-    <div className={cn("term-rule mt-12 mb-4", className)}>
-      <h2 className="flex items-baseline gap-2.5">
-        {index && <span className="font-mono text-[10px] text-primary">{index}</span>}
-        <span className="display text-[19px] text-foreground">{children}</span>
+    <div className={cn("term-rule mb-6 mt-20", className)}>
+      <h2 className="flex items-baseline gap-4">
+        {index && <span className="font-mono text-[12px] text-primary">{index}</span>}
+        <span className="display text-[clamp(1.9rem,3.6vw,2.75rem)] text-foreground">{children}</span>
       </h2>
       {aside && <span className="term-label order-last shrink-0 pl-3">{aside}</span>}
     </div>
@@ -115,17 +115,21 @@ export function Stat({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const sizes = { sm: "text-[13px]", md: "text-lg", lg: "text-2xl" } as const;
+  const sizes = {
+    sm: "text-[17px]",
+    md: "text-[26px]",
+    lg: "text-[clamp(3rem,6vw,4.75rem)]",
+  } as const;
   return (
     <div className={cn("min-w-0", className)}>
       <div className="term-label truncate">{label}</div>
       <div
-        className={cn("mt-1.5 font-mono leading-tight tracking-tight", sizes[size])}
+        className={cn("mt-2.5 font-mono leading-[0.95] tracking-[-0.02em]", sizes[size])}
         style={tone ? { color: tone } : undefined}
       >
         {value}
       </div>
-      {sub && <div className="mt-1 text-[11px] leading-snug text-faint">{sub}</div>}
+      {sub && <div className="mt-2.5 text-[12.5px] leading-snug text-faint">{sub}</div>}
     </div>
   );
 }
@@ -143,7 +147,7 @@ export function LeaderRow({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-baseline py-[5px] text-[13px]", className)}>
+    <div className={cn("flex items-baseline py-[7px] text-[15px]", className)}>
       <span className="shrink-0 text-muted-foreground">{label}</span>
       <span className="term-leader" aria-hidden />
       <span className="shrink-0 font-mono" style={tone ? { color: tone } : undefined}>
@@ -176,7 +180,7 @@ export function FactLine({
               ·
             </span>
           )}
-          <span className="font-mono text-[11px] tracking-[0.06em] text-muted-foreground">{f}</span>
+          <span className="font-mono text-[13px] tracking-[0.04em] text-muted-foreground">{f}</span>
         </span>
       ))}
     </div>
@@ -213,7 +217,7 @@ export function Lamp({
         }}
       />
       <span
-        className="font-mono text-[10px] uppercase tracking-[0.14em]"
+        className="font-mono text-[11px] uppercase tracking-[0.16em]"
         style={{ color: on ? colour : "var(--faint)" }}
       >
         {children}
@@ -250,7 +254,7 @@ export function ScoreBar({
 
   return (
     <div
-      className={cn("flex h-2.5 gap-[2px]", className)}
+      className={cn("flex h-3.5 gap-[2px]", className)}
       role="img"
       aria-label={value === null ? "not measured" : `${Math.round(value)} out of 100`}
     >
@@ -314,7 +318,7 @@ export function Callout({
   } as const;
   return (
     <div
-      className={cn("border-l-2 py-2 pl-3 pr-2 text-[13px] leading-relaxed", tones[tone], className)}
+      className={cn("border-l-2 py-2.5 pl-4 pr-2 text-[15px] leading-relaxed", tones[tone], className)}
     >
       {children}
     </div>

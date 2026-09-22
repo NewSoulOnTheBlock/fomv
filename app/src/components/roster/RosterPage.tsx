@@ -90,33 +90,32 @@ export function RosterPage({ data }: { data: AppData }) {
 
 function Masthead({ count: listed }: { count: number }) {
   return (
-    <section className="border-b border-border pb-14 pt-16 md:pt-24">
-      <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-        <div className="rise step-1">
-          <div className="term-label mb-6">
-            copy-trading · solana · {listed} graded trader{listed === 1 ? "" : "s"}
-          </div>
+    <section className="border-b border-border pb-20 pt-20 md:pt-28">
+      {/*
+        The headline gets the full measure rather than a column beside the
+        diagram. At this size a 500px column breaks "Follow a trader" across
+        two lines and the whole thing reads as text that did not fit; given
+        the width it breaks where it was written to break.
+      */}
+      <div className="rise step-1">
+        <div className="term-label mb-8">
+          copy-trading · solana · {listed} graded trader{listed === 1 ? "" : "s"}
+        </div>
 
-          <h1 className="display text-[clamp(2.75rem,6.4vw,4.5rem)]">
-            Follow a trader
-            <br />
-            who has been
-            <br />
-            <span className="display-em">measured</span>.
-          </h1>
+        <h1 className="display max-w-[15ch] text-[clamp(3.4rem,10.5vw,9rem)]">
+          Follow a trader who has been <span className="display-em">measured</span>.
+        </h1>
+      </div>
 
-          <p className="mt-7 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
+      <div className="mt-16 grid gap-14 lg:grid-cols-[minmax(0,30rem)_minmax(0,1fr)] lg:items-center">
+        <div className="rise step-2">
+          <p className="text-[19px] leading-[1.55] text-muted-foreground">
             A short roster, audited on five dimensions of skill rather than ranked by profit.
             Authorise one of them and their swaps are mirrored into{" "}
             <span className="text-foreground">your</span> wallet at their portfolio weight — so
             your position scales to your balance, not theirs.
           </p>
 
-          <div className="mt-9 flex flex-wrap items-end gap-x-10 gap-y-5">
-            <Headline value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} label="per mirrored trade" />
-            <Headline value="$0" label="to start or stop" />
-            <Headline value="self" label="custody, always" tone="var(--pos)" />
-          </div>
         </div>
 
         {/*
@@ -127,9 +126,7 @@ function Masthead({ count: listed }: { count: number }) {
         */}
         <div className="rise step-3 relative hidden md:block">
           <div
-            // Vertical bleed only. `-inset-10` widened the document by 20px on a
-            // phone, because nothing clips a decorative layer that escapes its box.
-            className="pointer-events-none absolute -inset-y-12 inset-x-0 -z-10 opacity-60"
+            className="pointer-events-none absolute -inset-y-16 inset-x-0 -z-10 opacity-70"
             style={{
               background: "radial-gradient(60% 60% at 50% 50%, var(--amber-glow), transparent 70%)",
             }}
@@ -138,6 +135,14 @@ function Masthead({ count: listed }: { count: number }) {
           <MirrorDiagram />
         </div>
       </div>
+
+      {/* The three numbers that answer "what does this cost me", given a band
+          of their own rather than squeezed beside the copy. */}
+      <div className="rise step-4 mt-16 grid gap-10 border-t border-border pt-10 sm:grid-cols-3">
+        <Headline value={bps(DEFAULT_FEE_TERMS.tradeFeeBps)} label="per mirrored trade" />
+        <Headline value="$0" label="to start or stop" />
+        <Headline value="self" label="custody, always" tone="var(--pos)" />
+      </div>
     </section>
   );
 }
@@ -145,10 +150,10 @@ function Masthead({ count: listed }: { count: number }) {
 function Headline({ value, label, tone }: { value: string; label: string; tone?: string }) {
   return (
     <div>
-      <div className="font-mono text-[22px] leading-none" style={tone ? { color: tone } : undefined}>
+      <div className="font-mono text-[38px] leading-none tracking-[-0.02em]" style={tone ? { color: tone } : undefined}>
         {value}
       </div>
-      <div className="term-label mt-2">{label}</div>
+      <div className="term-label mt-3">{label}</div>
     </div>
   );
 }
@@ -181,19 +186,19 @@ function TraderRecord({
   return (
     <Panel className="group rise step-2 transition-colors hover:border-[#2c2c36]">
       <a href={href(`/t/${entry.leader}`)} className="block focus-visible:outline-none">
-        <div className="grid gap-5 p-5 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center">
+        <div className="grid gap-7 p-6 md:grid-cols-[auto_minmax(0,1fr)_auto] md:items-center">
           {/* Identity and shape. */}
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-6">
             <span className="term-label hidden w-6 shrink-0 md:block">
               {String(index).padStart(2, "0")}
             </span>
             {loading ? (
-              <Skeleton className="size-[52px]" />
+              <Skeleton className="size-[76px]" />
             ) : (
-              <EdgeGlyph dimensions={dims} score={edge} size={52} />
+              <EdgeGlyph dimensions={dims} score={edge} size={76} />
             )}
             <div className="min-w-0">
-              <div className="display truncate text-[26px]">{entry.handle}</div>
+              <div className="display truncate text-[clamp(2rem,3.4vw,2.9rem)]">{entry.handle}</div>
               <FactLine
                 className="mt-1.5"
                 facts={[
@@ -227,7 +232,7 @@ function TraderRecord({
             />
           </div>
 
-          <div className="hidden shrink-0 items-center gap-2 font-mono text-[12px] text-muted-foreground transition-colors group-hover:text-primary md:flex">
+          <div className="hidden shrink-0 items-center gap-2 font-mono text-[14px] text-muted-foreground transition-colors group-hover:text-primary md:flex">
             open
             <ArrowRight className="size-3.5" />
           </div>
@@ -235,7 +240,7 @@ function TraderRecord({
       </a>
 
       {entry.note && (
-        <p className="border-t border-border px-5 py-3.5 text-[12px] leading-relaxed text-faint">
+        <p className="border-t border-border px-6 py-4 text-[14px] leading-relaxed text-faint">
           {entry.note}
         </p>
       )}
@@ -255,12 +260,12 @@ function Cell({
   tone?: string;
 }) {
   return (
-    <div className="min-w-[92px]">
+    <div className="min-w-[116px]">
       <div className="term-label">{label}</div>
-      <div className="mt-1.5 font-mono text-[19px] leading-none" style={tone ? { color: tone } : undefined}>
+      <div className="mt-2.5 font-mono text-[30px] leading-none tracking-[-0.02em]" style={tone ? { color: tone } : undefined}>
         {value}
       </div>
-      {sub !== undefined && <div className="mt-1.5 text-[10px] text-faint">{sub}</div>}
+      {sub !== undefined && <div className="mt-2 text-[12px] text-faint">{sub}</div>}
     </div>
   );
 }
@@ -294,10 +299,10 @@ function HowItWorks() {
       <SectionRule index="02">How following works</SectionRule>
       <div className="grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
         {steps.map(([n, title, body]) => (
-          <div key={n} className="bg-card p-5">
-            <div className="font-mono text-[11px] text-primary">{n}</div>
-            <h3 className="display mt-3 text-[20px]">{title}</h3>
-            <p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground">{body}</p>
+          <div key={n} className="bg-card p-7">
+            <div className="font-mono text-[13px] text-primary">{n}</div>
+            <h3 className="display mt-4 text-[30px]">{title}</h3>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">{body}</p>
           </div>
         ))}
       </div>
@@ -313,18 +318,18 @@ function ListingPitch({ listed }: { listed: number }) {
         Trade your own book?
       </SectionRule>
       <Panel>
-        <div className="grid items-center gap-8 p-7 md:grid-cols-[1fr_auto]">
+        <div className="grid items-center gap-10 p-10 md:grid-cols-[1fr_auto]">
           <div className="max-w-2xl">
-            <h3 className="display text-[30px]">
+            <h3 className="display text-[clamp(2.2rem,4.4vw,3.4rem)]">
               Get audited. Get listed. Get <span className="display-em">followed</span>.
             </h3>
-            <p className="mt-3 text-[13.5px] leading-relaxed text-muted-foreground">
+            <p className="mt-5 text-[17px] leading-relaxed text-muted-foreground">
               We run the same five-dimension audit on your wallet that you see above, publish it
               whatever it says, and configure the mirror runner to your book. You keep trading your
               own account exactly as you do now — followers mirror it from their own wallets, and
               nothing about your keys or your positions changes.
             </p>
-            <p className="mt-3 text-[12px] text-faint">
+            <p className="mt-4 text-[14px] text-faint">
               The roster is capped at {LISTING_TERMS.maxRoster}. Applications go to a call, not to a
               queue.
             </p>

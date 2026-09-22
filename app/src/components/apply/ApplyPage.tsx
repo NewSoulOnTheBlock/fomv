@@ -110,7 +110,7 @@ export function ApplyPage() {
     <div>
       <Masthead />
 
-      <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start mt-8">
+      <div className="mt-12 grid items-start gap-8 lg:grid-cols-[1fr_390px]">
         <div className="min-w-0 space-y-6">
           {phase === "form" ? (
             <Panel>
@@ -195,7 +195,7 @@ export function ApplyPage() {
                       inputMode="decimal"
                     />
                     <div className="space-y-1.5">
-                      <Label htmlFor="strategy" className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                      <Label htmlFor="strategy" className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                         What you trade, and why it copies
                       </Label>
                       <Textarea
@@ -205,9 +205,9 @@ export function ApplyPage() {
                         value={draft.strategy}
                         onChange={(e) => set("strategy", e.target.value)}
                         placeholder="Size, holding period, how you pick, what you avoid. If your edge depends on being first by two seconds, say so — a mirrored account is always second and we would rather know now."
-                        className="font-sans text-[13px] resize-y"
+                        className="resize-y font-sans text-[16px]"
                       />
-                      <p className="text-[11px] leading-snug text-faint">
+                      <p className="text-[13px] leading-snug text-faint">
                         Two or three sentences is plenty. It is read by a person, not scored.
                       </p>
                     </div>
@@ -232,7 +232,7 @@ export function ApplyPage() {
                     {busy ? <Loader2 className="animate-spin" /> : <Send />}
                     {busy ? "sending…" : "Submit and pick a time"}
                   </Button>
-                  <p className="text-[11px] text-faint flex-1 min-w-[200px]">
+                  <p className="min-w-[200px] flex-1 text-[13px] text-faint">
                     Submitting opens the calendar. Nothing is charged here and no wallet is
                     connected — this form touches nothing on chain.
                   </p>
@@ -281,20 +281,20 @@ export function ApplyPage() {
 
 function Masthead() {
   return (
-    <div className="rise step-1 border-b border-border pb-10 pt-16">
-      <div className="term-label mb-6">for traders · {LISTING_TERMS.maxRoster} seats</div>
-      <h1 className="display max-w-3xl text-[clamp(2.5rem,5.6vw,4rem)]">
+    <div className="rise step-1 border-b border-border pb-16 pt-20">
+      <div className="term-label mb-8">for traders · {LISTING_TERMS.maxRoster} seats</div>
+      <h1 className="display max-w-4xl text-[clamp(3.2rem,8.2vw,6.75rem)]">
         Get audited. Get listed.
         <br />
         Get <span className="display-em">followed</span>.
       </h1>
-      <p className="mt-7 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+      <p className="mt-10 max-w-2xl text-[19px] leading-[1.55] text-muted-foreground">
         Tell us which wallet to look at and pick a time. Before the call we run the same
         five-dimension audit you can see on any roster page against your real on-chain history, so
         the conversation starts from your numbers rather than your pitch.
       </p>
       <FactLine
-        className="mt-7"
+        className="mt-10"
         facts={["solana only, for now", "you keep your keys", "you keep trading your own account"]}
       />
     </div>
@@ -326,7 +326,7 @@ function Received({
             ))}
           </>
         ) : (
-          <p className="text-[13px] leading-relaxed text-muted-foreground">
+          <p className="text-[16px] leading-relaxed text-muted-foreground">
             Logged{handle ? <> under <span className="font-mono text-foreground">{handle}</span></> : null}. The
             audit runs before the call, so pick a time at least a day out if you can — it needs a
             few hundred RPC reads and a while to price everything.
@@ -345,7 +345,7 @@ function TermsPanel() {
         {LISTING_TERMS.includes.map((line) => (
           <div key={line} className="flex items-start gap-2.5 px-3 py-2.5">
             <Check className="size-3.5 mt-0.5 shrink-0 text-pos" aria-hidden />
-            <span className="text-[12px] leading-snug text-secondary-foreground">{line}</span>
+            <span className="text-[14px] leading-snug text-secondary-foreground">{line}</span>
           </div>
         ))}
       </div>
@@ -354,7 +354,7 @@ function TermsPanel() {
         {LISTING_TERMS.excludes.map((line) => (
           <div key={line} className="flex items-start gap-2.5 px-3 py-2.5">
             <Minus className="size-3.5 mt-0.5 shrink-0 text-faint" aria-hidden />
-            <span className="text-[12px] leading-snug text-muted-foreground">{line}</span>
+            <span className="text-[14px] leading-snug text-muted-foreground">{line}</span>
           </div>
         ))}
       </div>
@@ -367,11 +367,11 @@ function BarPanel() {
     <Panel>
       <PanelHead label="the bar" aside="published" />
       <PanelBody className="space-y-3">
-        <p className="text-[12px] leading-relaxed text-muted-foreground">
+        <p className="text-[15px] leading-relaxed text-muted-foreground">
           Stated so you can judge before spending half an hour on a call. None of it is enforced by
           the form — a borderline book with a good reason is worth the conversation.
         </p>
-        <div className="space-y-2 font-mono text-[12px]">
+        <div className="space-y-3 font-mono text-[15px]">
           <div className="flex justify-between gap-3">
             <span className="text-muted-foreground">closed round trips</span>
             <span>≥ {LISTING_BAR.minClosedTrades}</span>
@@ -385,7 +385,7 @@ function BarPanel() {
             <span>{LISTING_BAR.supportedChains.join(", ")}</span>
           </div>
         </div>
-        <p className="text-[11px] leading-relaxed text-faint">
+        <p className="text-[13px] leading-relaxed text-faint">
           Below fifty complete round trips an edge audit measures noise rather than a trader, and
           publishing a grade off it would be dishonest in your favour as often as against you.
         </p>
@@ -407,8 +407,8 @@ function Fieldset({
 }) {
   return (
     <fieldset className="space-y-4">
-      <legend className="term-rule w-full mb-3">
-        <span className="term-label !text-secondary-foreground">{legend}</span>
+      <legend className="term-rule mb-5 w-full">
+        <span className="display text-[24px] text-foreground">{legend}</span>
         {hint && <span className="term-label order-last shrink-0 pl-3">{hint}</span>}
       </legend>
       {children}
@@ -434,7 +434,7 @@ function Field({
 } & Omit<React.ComponentProps<"input">, "id" | "value" | "onChange">) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={id} className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+      <Label htmlFor={id} className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
         {label}
         {rest.required && <span className="text-primary ml-1">*</span>}
       </Label>
@@ -443,13 +443,13 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
-          mono ? "font-mono text-[12px]" : "text-[13px]",
+          mono ? "h-11 font-mono text-[14px]" : "h-11 text-[16px]",
           // A field you cannot type in should not invite you to try.
           rest.readOnly && "bg-muted text-muted-foreground focus-visible:ring-0 cursor-default",
         )}
         {...rest}
       />
-      {hint && <p className="text-[11px] leading-snug text-faint">{hint}</p>}
+      {hint && <p className="text-[13px] leading-snug text-faint">{hint}</p>}
     </div>
   );
 }

@@ -67,19 +67,19 @@ export function CopyAddress({
       aria-label={label}
       title={state === "idle" ? address : label}
       className={cn(
-        "group inline-flex h-8 items-center gap-1.5 rounded-[2px] px-2",
+        "group inline-flex h-9 items-center gap-2 rounded-[2px] px-2.5",
         "border border-transparent hover:border-border",
-        "font-mono text-[12px] text-muted-foreground hover:text-foreground",
+        "font-mono text-[15px] text-muted-foreground hover:text-foreground",
         "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         className,
       )}
     >
       <span>{shortAddress(address, lead, tail)}</span>
       {state === "copied" ? (
-        <Check className="size-3.5 shrink-0 text-[var(--band-good)]" aria-hidden />
+        <Check className="size-4 shrink-0 text-[var(--band-good)]" aria-hidden />
       ) : (
         <Copy
-          className={cn("size-3.5 shrink-0", state === "failed" && "text-destructive")}
+          className={cn("size-4 shrink-0", state === "failed" && "text-destructive")}
           aria-hidden
         />
       )}

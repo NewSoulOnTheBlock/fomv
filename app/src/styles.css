@@ -125,8 +125,18 @@
     background: transparent;
     color: var(--foreground);
     font-family: var(--font-sans);
-    font-size: 14px;
-    line-height: 1.6;
+    /*
+     * Sixteen, not fourteen.
+     *
+     * A dense dashboard sets everything at 13-14px and lets the reader lean
+     * in. That is the right call for a tool someone lives inside all day and
+     * the wrong one here: this page has to make an argument to a stranger
+     * before it shows them a table. Prose is set at a size it can be read at,
+     * and the *contrast* between that and the 11px mono labels is what makes
+     * the hierarchy visible from across the room.
+     */
+    font-size: 16px;
+    line-height: 1.65;
     font-feature-settings: "ss01", "cv05";
     -webkit-font-smoothing: antialiased;
   }
@@ -189,10 +199,10 @@
   .display {
     font-family: var(--font-display);
     font-optical-sizing: auto;
-    font-variation-settings: "opsz" 72;
+    font-variation-settings: "opsz" 96;
     font-weight: 400;
-    letter-spacing: -0.015em;
-    line-height: 1.02;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
   }
 
   /* The one italic in the product, for an aside inside a headline. */
@@ -208,9 +218,9 @@
    */
   .term-label {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 11px;
     line-height: 1.2;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--faint);
   }
@@ -250,8 +260,8 @@
    */
   .bloom {
     text-shadow:
-      0 0 14px var(--amber-glow),
-      0 0 46px color-mix(in oklab, var(--amber) 14%, transparent);
+      0 0 24px var(--amber-glow),
+      0 0 80px color-mix(in oklab, var(--amber) 18%, transparent);
   }
 
   /* A faint engineering grid, behind page chrome only. */

@@ -1,0 +1,58 @@
+# systemd unit for the FOMV follow server.
+#
+# One long-running stateful process: it serves the API and runs the mirror loop
+# on one event loop, holding a cursor per subscriber, a SQLite file and
+# rate-limited RPC connections. None of that survives being started per request,
+# which is why this is a unit and not a serverless function.
+#
+# Run exactly one instance against a given database. Two would each read the
+# same unprocessed trades before either recorded a fill, and mirror every trade
+# twice. For redundancy, run a standby that is not polling.
+[Unit]
+Description=FOMV — follow server
+Documentation=https://github.com/NewSoulOnTheBlock/fomv/blob/master/docs/SERVER.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fomv
+Group=fomv
+WorkingDirectory=/opt/fomv/app
+EnvironmentFile=/opt/fomv/app/.env
+ExecStart=/usr/local/bin/bun run src/server/index.ts
+Restart=always
+RestartSec=3
+
+# The loop may be mid-broadcast. `index.ts` traps SIGINT, finishes the cycle in
+# flight and persists the processed-trade set before exiting -- a trade that was
+# broadcast but not recorded would be mirrored a second time on the next start.
+KillSignal=SIGINT
+TimeoutStopSec=45
+
+# The process can sign swaps on other people's wallets. Keep it away from
+# everything it does not need. It writes in exactly one place.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+ReadWritePaths=/opt/fomv/app/state
+
+# Bounded so a leak here cannot take the box down with it. This machine has
+# under two gigabytes and something else is already living on it.
+MemoryMax=768M
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fomv
+
+[Install]
+WantedBy=multi-user.target

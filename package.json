@@ -1,19 +1,22 @@
 {
-  "name": "fomo-vaults",
+  "name": "fomv",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Pooled copy-trading vaults that mirror a fomo trader's Hyperliquid perp positions by portfolio weight.",
+  "description": "FOMV - Fear of Missing Vault. Pooled copy-trading vaults over fomo trader accounts, with a curated roster, a listing fee and a protocol withdrawal fee.",
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "watch": "bun run src/cli.ts watch",
     "nav": "bun run src/cli.ts nav",
     "simulate": "bun run src/cli.ts simulate",
-    "build:web": "bun run scripts/build-web.ts"
+    "build:web": "bun run scripts/build-web.ts",
+    "score": "bun run src/cli.ts score",
+    "profile": "bun run src/cli.ts profile",
+    "build:appdata": "bun run scripts/build-appdata.ts"
   },
   "dependencies": {
-    "@solana/web3.js": "^1.98.0"
+    "@solana/web3.js": "1.99.0"
   },
   "devDependencies": {
     "@types/bun": "latest",

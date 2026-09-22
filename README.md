@@ -1,6 +1,7 @@
-# fomo-vaults
+# FOMV - Fear of Missing Vault
 
-Pooled copy-trading vaults over [fomo](https://fomo.family) trader accounts.
+Pooled copy-trading vaults over [fomo](https://fomo.family) trader accounts,
+on a curated roster.
 
 Deposit into a trader's vault. The vault mirrors that trader's on-chain swaps,
 bounded by published guardrails. Depositors hold shares; the leader earns a
@@ -135,6 +136,142 @@ intermediate SOL leg can never be mirrored as a trade of its own. Decoding
 per-leg events and mirroring each is how a copy bot ends up buying the router's
 intermediate token and immediately re-selling it.
 
+## The platform
+
+FOMV is a roster, not a marketplace. A small number of leaders are graded,
+listed and cranked; everyone else is watched. Two revenue lines pay for it, and
+they are enforced in deliberately different places.
+
+| | Charged | Enforced by | Why there |
+|---|---|---|---|
+| **Listing fee** | Once, to list a trader | The crank | A vault without a manager posting NAV cannot settle a deposit. Declining to crank an unpaid vault is sufficient. |
+| **Withdrawal fee** | On every exit | The program | `initiate_withdrawal` is permissionless. An app-side skim would be bypassed by calling the program directly. |
+
+### The withdrawal fee is taken in shares
+
+Exits are in-kind: burning X% of the shares pays out X% of *every* token the
+vault holds. A fee denominated in tokens would therefore mean paying the
+treasury a slice of each memecoin in the book and funding an associated token
+account for every one of them.
+
+Instead the program transfers the fee portion of the presented shares to the
+treasury and burns only the remainder. One transfer, no new accounts, the book
+untouched, and the treasury redeems in-kind later through the same claim path as
+any other holder. It is the same move `vault/ledger.ts` already makes for the
+performance fee.
+
+The fee is **floored**, not rounded up. Fees elsewhere in this codebase round
+toward the pool because the counterparty *is* the pool; here the counterparty is
+FOMV, and rounding a one-share exit up would hand the platform all of it.
+
+### What a depositor can verify without trusting us
+
+- **A ceiling in code.** `MAX_WITHDRAW_FEE_BPS` is 200. Moving it needs a
+  program upgrade, not a config change, so a compromised authority key cannot
+  charge more than 2% on the way out.
+- **A fee fixed at listing.** Each vault snapshots its own `withdraw_fee_bps`.
+  Repricing the platform never reaches a vault that is already live.
+- **A one-way ratchet.** `set_vault_withdraw_fee` may only *lower* a vault's
+  fee. The app flags any observed increase as an anomaly, because the program
+  cannot produce one.
+- **Exits that do not depend on us.** Suspending a listing stops deposits, never
+  withdrawals: in-kind redemption needs no NAV and no manager.
+
+### Choosing the roster
+
+```bash
+# Grade candidates on copyability and propose a roster. Read-only.
+bun run src/cli.ts score --candidates <addr,addr,addr> --seats 3
+```
+
+Capacity gates before rank. A trader scoring 95 who breaks at $30k is not a
+better listing than one scoring 70 who absorbs $2m - they are a vault that fills
+up and then loses to its own price impact.
+
+Two approximations the output states for itself, both one-directional:
+
+- **Capacity uses today's pools**, not the pools at each trade, because there is
+  no archival liquidity index here.
+- **Peak weight uses today's book**, not the book at each trade. A trader whose
+  account grew over the window has their early weights understated, which
+  overstates capacity. Rebuilding equity trade by trade is the honest fix.
+
+Where a value genuinely cannot be measured it stays `null` and the candidate is
+failed on it, rather than being scored against a guess.
+
+One caveat the output repeats: capacity is computed against pools as they are
+*now*, not as they were at each trade, because there is no archival liquidity
+index here. Read it as an order of magnitude.
+
+## The app
+
+`app/` is a Vite + React front end with Privy social sign-in, so a depositor
+never needs to own a wallet first: signing in with Google creates an embedded
+Solana wallet for them.
+
+```bash
+bun run build:appdata          # regenerate app/public/data from state/profiles
+cd app && bun install && bun run dev
+```
+
+Set `VITE_PRIVY_APP_ID` in `app/.env.local`. Without it sign-in is disabled and
+nothing else is: the dashboard reads static JSON and stays fully usable.
+
+Two properties the app holds onto:
+
+- **The fee arithmetic is imported, not reimplemented.** `VaultPanel` calls the
+  same `quoteWithdrawal` the vault runs, aliased as `@engine` in
+  `vite.config.ts`. A quoted number and a charged number that came from two
+  code paths would eventually disagree.
+- **It refuses to fake a settlement.** While `programDeployed` is false the
+  deposit and withdraw actions are disabled and say why. Quoting a fee exactly
+  is honest; simulating a transfer that cannot happen is not.
+
+## The trader dashboard
+
+A P&L leaderboard rewards whoever took the most risk and survived. The
+dashboard is built around a **Trader Edge Score** instead, so "made $24,630" is
+never the headline.
+
+Five dimensions, each 0-100, over the ten metrics beneath them:
+
+| Dimension | Built from |
+|---|---|
+| Profitability | Profit factor, **median** ROI per trade |
+| Risk Management | Max drawdown, avg win vs avg loss, position sizing, return-per-unit-of-scatter |
+| Entry Skill | Return at +1h/+6h/+24h, share of entries that later ran +25/+50/+100% |
+| Exit Skill | Share of the available move captured, premature-exit rate |
+| Consistency | Profitable weeks, variation between them, share of tokens profitable |
+
+### Three rules that shape the numbers
+
+**Medians, not means.** This trader's mean ROI is 1352% and their median is
+172%: one moonshot on a small position. Scoring the mean ranks a lottery ticket
+above a repeatable process, which is the exact failure the dashboard exists to
+avoid. Capture ratio is a median too, and clamped per episode, because it is
+unbounded below and one catastrophic exit would otherwise define the dimension.
+
+**Skill is reported separately from exposure.** Two traders earn the same
+dollars; one on 4% position sizes and the other on 40%. For a pooled vault that
+difference *is* the product, because exposure decides what a depositor's
+drawdown feels like whatever the return.
+
+**Nothing unmeasurable is scored as zero.** A dimension that cannot be measured
+renders as a hatched bar and the Edge Score is re-weighted over the rest, so a
+missing feed lowers confidence rather than quietly becoming a bad grade.
+
+### Episodes that straddle the window
+
+The one that cost real debugging. A history window has an edge, and positions
+opened before it get sold inside it - arriving with a cost basis that was never
+observed. On an 18-hour sample this affected **15 of 24 closed positions**, and
+it drove median capture ratio negative for a trader with a 79% win rate.
+
+The signature is quantities: a complete round trip balances, a straddling one
+sells far more than it bought. Those episodes are excluded from every metric
+rather than corrected, counted as `straddlingEpisodes`, and reported as a gap
+telling you to widen the window.
+
 ## Running it
 
 ```bash
@@ -172,13 +309,18 @@ module and is identical either way.
 ## Status
 
 Working and tested end to end against Solana mainnet: real swaps extracted,
-weights sized, live Jupiter quotes, guardrails enforced. 57 tests.
+weights sized, live Jupiter quotes, guardrails enforced. 104 tests, clean
+`tsc`, and the Anchor program type-checks.
 
 **Not yet built:**
-- Custody. The vault currently assumes a keypair it controls. A real product
-  needs either a program-owned vault with on-chain share accounting, or a
-  regulated custodial arrangement. This is the decision that gates launch.
+- An SBF build. The program passes `cargo check`, which validates every account
+  constraint, but `anchor build` has not been run and no IDL is emitted, so
+  compute and account-size budgets are unverified. It has never been deployed.
+- A client for the program. Nothing yet builds `initialize_platform`,
+  `initialize_vault` or `initiate_withdrawal` transactions; `src/platform`
+  models the economics and predicts what the program will charge.
 - Deposit/withdrawal plumbing wiring `vault/ledger.ts` to actual transfers.
+- The FOMV front end.
 - EVM chains. fomo also trades Base, BNB, Ethereum, Monad and Robinhood Chain.
   `ChainAdapter` is the seam; the mirror and ledger layers are chain-agnostic.
 - Persistence. `RunnerState` is in-memory; it needs a durable store so the

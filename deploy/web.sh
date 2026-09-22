@@ -53,9 +53,21 @@ nginx -t
 systemctl reload nginx
 
 log "Certificate"
+# www is included only when it already points here. Asking for a name that
+# resolves elsewhere fails the challenge and spends an attempt against the
+# rate limit, which is a poor way to discover a DNS record was never changed.
+DOMAINS=(-d "$HOST")
+WWW_RESOLVED=$(getent ahostsv4 "www.$HOST" | awk '{print $1}' | head -1 || true)
+if [ "$WWW_RESOLVED" = "$PUBLIC" ]; then
+  DOMAINS+=(-d "www.$HOST")
+  echo "  including www.$HOST"
+else
+  echo "  skipping www.$HOST — it resolves to ${WWW_RESOLVED:-nothing}, not here"
+fi
+
 # --redirect: nothing should reach this over plain http. Every authenticated
 # route carries a bearer token.
-certbot --nginx -d "$HOST" --redirect --agree-tos \
+certbot --nginx "${DOMAINS[@]}" --redirect --agree-tos \
         --register-unsafely-without-email --non-interactive
 systemctl reload nginx
 

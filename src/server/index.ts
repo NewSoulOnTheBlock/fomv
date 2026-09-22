@@ -38,35 +38,75 @@ import { Store } from "./store.js";
  * would be the wrong default however careful the operator.
  */
 
-const cfg = {
-  rpcUrl: required("SOLANA_RPC_URL"),
-  txRpcUrl: process.env.SOLANA_TX_RPC_URL ?? process.env.SOLANA_RPC_URL!,
-  privyAppId: required("PRIVY_APP_ID"),
-  privyAppSecret: required("PRIVY_APP_SECRET"),
-  privyAuthKey: process.env.PRIVY_AUTHORIZATION_PRIVATE_KEY,
-  treasury: required("FOMV_TREASURY"),
-  dbPath: process.env.FOMV_DB_PATH ?? "state/follow.sqlite",
-  port: Number(process.env.PORT ?? 8080),
-  intervalMs: Number(process.env.FOMV_POLL_INTERVAL_SEC ?? 10) * 1000,
-  live: process.env.MODE === "live",
-  allowedOrigins: (process.env.FOMV_ALLOWED_ORIGINS ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean),
-  tradeFeeBps: Number(process.env.FOMV_TRADE_FEE_BPS ?? 100),
-  leaderShareBps: Number(process.env.FOMV_LEADER_SHARE_BPS ?? 5_000),
-  // Absent disables the applications inbox rather than opening it.
-  adminToken: process.env.FOMV_ADMIN_TOKEN,
-};
+/**
+ * An environment variable, treating empty as absent.
+ *
+ * `process.env.X ?? fallback` does not fall back on `X=`, because an empty
+ * string is a perfectly good string. Every deployment writes a template with
+ * blank lines in it, so that distinction is not a corner case -- it is the
+ * normal state of a freshly installed `.env`.
+ *
+ * It cost an outage on the first boot: `SOLANA_TX_RPC_URL=` was read as a URL,
+ * failed the `?? SOLANA_RPC_URL` fallback, and reached `new Connection("")`,
+ * which throws before the process gets far enough to say anything useful.
+ */
+function env(name: string): string | undefined {
+  const v = process.env[name];
+  return v === undefined || v.trim() === "" ? undefined : v;
+}
+
+/**
+ * A numeric variable.
+ *
+ * Separate from `env` because the failure here is silent rather than loud.
+ * `Number("")` is `0`, so a blank `FOMV_TRADE_FEE_BPS=` would have set the fee
+ * to zero and the server would have run perfectly, charging nobody, until
+ * somebody checked the ledger. A value that is present but not a number is
+ * fatal rather than defaulted, for the same reason: it was meant to say
+ * something.
+ */
+function num(name: string, fallback: number): number {
+  const raw = env(name);
+  if (raw === undefined) return fallback;
+  const v = Number(raw);
+  if (!Number.isFinite(v)) {
+    console.error(`[fatal] ${name} must be a number, got ${JSON.stringify(raw)}.`);
+    process.exit(1);
+  }
+  return v;
+}
 
 function required(name: string): string {
-  const v = process.env[name];
-  if (!v) {
+  const v = env(name);
+  if (v === undefined) {
     console.error(`[fatal] ${name} is required. See .env.example.`);
     process.exit(1);
   }
   return v;
 }
+
+const cfg = {
+  rpcUrl: required("SOLANA_RPC_URL"),
+  // Archival history is the expensive half and is often served better by a
+  // different endpoint. Absent means "the same one".
+  txRpcUrl: env("SOLANA_TX_RPC_URL") ?? required("SOLANA_RPC_URL"),
+  privyAppId: required("PRIVY_APP_ID"),
+  privyAppSecret: required("PRIVY_APP_SECRET"),
+  privyAuthKey: env("PRIVY_AUTHORIZATION_PRIVATE_KEY"),
+  treasury: required("FOMV_TREASURY"),
+  dbPath: env("FOMV_DB_PATH") ?? "state/follow.sqlite",
+  port: num("PORT", 8080),
+  intervalMs: num("FOMV_POLL_INTERVAL_SEC", 10) * 1000,
+  live: process.env.MODE === "live",
+  allowedOrigins: (env("FOMV_ALLOWED_ORIGINS") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+  tradeFeeBps: num("FOMV_TRADE_FEE_BPS", 100),
+  leaderShareBps: num("FOMV_LEADER_SHARE_BPS", 5_000),
+  // Absent disables the applications inbox rather than opening it.
+  adminToken: env("FOMV_ADMIN_TOKEN"),
+};
 
 const store = new Store({ path: cfg.dbPath });
 const privy = createPrivyClient({

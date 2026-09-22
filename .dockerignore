@@ -1,0 +1,11 @@
+node_modules
+app
+onchain
+docs
+state
+test
+dist
+.git
+.env
+.env.*
+*.sqlite

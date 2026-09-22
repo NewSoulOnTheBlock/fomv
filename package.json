@@ -13,9 +13,11 @@
     "build:web": "bun run scripts/build-web.ts",
     "score": "bun run src/cli.ts score",
     "profile": "bun run src/cli.ts profile",
-    "build:appdata": "bun run scripts/build-appdata.ts"
+    "build:appdata": "bun run scripts/build-appdata.ts",
+    "server": "bun run src/server/index.ts"
   },
   "dependencies": {
+    "@privy-io/server-auth": "^1.32.5",
     "@solana/web3.js": "1.99.0"
   },
   "devDependencies": {
